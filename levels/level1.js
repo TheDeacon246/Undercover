@@ -6,10 +6,6 @@ import { AnimationClip, AnimationMixer } from "three";
 import { FlyControls } from 'three/examples/jsm/controls/FlyControls'
 import * as CANNON from 'cannon-es';
 
-
-
-
-
 let p = [0, 0], bool = true, mixer, clock = new THREE.Clock(), controls;
 
 // Scene and renderer

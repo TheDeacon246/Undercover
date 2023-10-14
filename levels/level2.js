@@ -1,27 +1,28 @@
-import './style.css'
+import '/style.css'
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
-import { AnimationClip, AnimationMixer } from "three";
-import { FlyControls } from 'three/examples/jsm/controls/FlyControls'
 import * as CANNON from 'cannon-es';
-import gsap from 'gsap';
 
 //Some of the global variables
-let p = [0, 0], bool = true, mixer, clock = new THREE.Clock(), controls;
+let p = [0, 0]; //update person position
+let bool = true, mixer, clock = new THREE.Clock(), controls;
+
+//creating 3d physics world
 const world = new CANNON.World({
 	gravity: new CANNON.Vec3(0, -9.81, 0)
 });
-let planeGeometry, planeMesh, planeBody;
 
-// Scene and renderer
+let planeGeometry, planeMesh, planeBody; //world variables
+let roofGeometry, roofMesh, roofBody; //world variables
+
+// Scene
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x8a8a8a);
+
+//renderer
 const renderer = new THREE.WebGLRenderer();
-
-renderer.setSize(window.innerWidth, window.innerHeight); //might need a resixe function
+renderer.setSize(window.innerWidth, window.innerHeight); //might need a resize function
 renderer.setPixelRatio(window.devicePixelRatio);
-
 renderer.shadowMap.enabled = true;
 document.body.appendChild(renderer.domElement);
 
@@ -31,63 +32,71 @@ scene.add(container);
 
 // Camera and controls
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1000);
-camera.position.set(0, 4, -20.5);
-camera.lookAt(0, 0, 0)
+container.add(new THREE.CameraHelper(camera))
 container.add(camera);
 
-//Light
-const light = new THREE.AmbientLight(0x404040);
-scene.add(light);
+//Light for outside "sun"
+const sun = new THREE.AmbientLight(0x404040);
+scene.add(sun);
 
-// Orbit CONTROLS
-const orbitControls = new OrbitControls(camera, renderer.domElement);
-orbitControls.enableDamping = true
-orbitControls.minDistance = 5
-orbitControls.maxDistance = 15
-orbitControls.enablePan = false
-orbitControls.maxPolarAngle = Math.PI / 2 - 0.05
-orbitControls.update();
+//Ground function as floor
+createFloor();
 
-// //Ground function with image as floor
-// createFloor();
+function createFloor() {
+	var material = new THREE.MeshPhongMaterial();
 
-// function createFloor() {
+	planeGeometry = new THREE.PlaneGeometry(30, 30)
+	planeMesh = new THREE.Mesh(planeGeometry, material)
+	planeMesh.rotateX(-Math.PI / 2)
+	planeMesh.receiveShadow = true
+	scene.add(planeMesh)
+
+	planeBody = new CANNON.Body({
+		type: CANNON.Body.STATIC,
+		shape: new CANNON.Box(new CANNON.Vec3(5, 5, 0.1))
+	})
+
+	planeBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0)
+	world.addBody(planeBody)
+}
+
+// function createRoof() {
 // 	var material = new THREE.MeshPhongMaterial();
 
-// 	planeGeometry = new THREE.PlaneGeometry(10, 10)
-// 	planeMesh = new THREE.Mesh(planeGeometry, material)
-// 	planeMesh.rotateX(-Math.PI / 2)
-// 	planeMesh.receiveShadow = true
-// 	scene.add(planeMesh)
+// 	roofGeometry = new THREE.PlaneGeometry(30, 30)
+// 	roofMesh = new THREE.Mesh(roofGeometry, material)
+// 	roofMesh.rotateX(-Math.PI / 2)
+// 	roofMesh.receiveShadow = true
+// 	roofMesh.position.y = 3;
+// 	scene.add(roofMesh)
 
-// 	planeBody = new CANNON.Body({
+// 	roofBody = new CANNON.Body({
 // 		type: CANNON.Body.STATIC,
-// 		shape: new CANNON.Box(new CANNON.Vec3(5, 5, 0.1))
+// 		shape: new CANNON.Box(new CANNON.Vec3(5, 8, 0.1))
 // 	})
 
-// 	planeBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0)
-// 	world.addBody(planeBody)
+// 	roofBody.quaternion.setFromEuler(-Math.PI / 2, 3, 0)
+// 	world.addBody(roofBody)
 // }
 
+// createRoof();
 
-//Model Loader
+//Model Loaders
 const loader = new GLTFLoader();
 const loader1 = new GLTFLoader();
 const loader2 = new GLTFLoader();
-const loader3 = new GLTFLoader();
-const loader4 = new GLTFLoader();
 
+//person physics
 const personPhysMat = new CANNON.Material();
 
-let person, mesh, road, roadBody = new CANNON.Body({ mass: 0 });
+let person, mesh;
 
 const personContactMat = new CANNON.ContactMaterial(
 	personPhysMat,
 	{ restitution: 0.9 }
 );
 
-
-let personGeometry = new THREE.SphereGeometry(), personMesh, personBody;
+let personBody;
 
 //Add soldier model
 loader.load('models/Soldier.glb', function (gltf) {
@@ -96,7 +105,7 @@ loader.load('models/Soldier.glb', function (gltf) {
 		if (node.isMesh) { node.castShadow = true; }
 	});
 
-	//add physis to character
+	//add physics to character
 	personBody = new CANNON.Body({
 		mass: 0,
 		shape: new CANNON.Sphere(0.9),
@@ -111,7 +120,7 @@ loader.load('models/Soldier.glb', function (gltf) {
 	mixer._actions[1].enabled = true;
 	mixer._actions[0].enabled = false;
 	scene.add(person);
-},
+	},
 );
 
 //house model
@@ -121,17 +130,8 @@ loader2.load('models/house/scene.gltf',
 		mesh.scale.set(1.5, 1.5, 1.5)
 		mesh.position.set(70, 0, -70);
 	
-		// //add physics to character
-		// const meshPhysMat = new CANNON.Material();
-		// const meshBody = new CANNON.Body({
-		// 	mass: 2,
-		// 	shape: new CANNON.Sphere(1.6),
-		// 	position: new CANNON.Vec3(mesh.position),
-		// 	material: meshPhysMat
-		// });
-		// world.addBody(meshBody);
 		scene.add(mesh);
-		//console.log()
+		
 	},
 
 	(xhr) => {
@@ -145,25 +145,17 @@ loader2.load('models/house/scene.gltf',
     }
 );
 
+var safe = new THREE.Group();
 
 //safe model
 loader1.load('models/safe/scene.gltf', 
 	(gltf2) => {
 		mesh = gltf2.scene;
-		mesh.position.set(5, 1, -4.5);
+		mesh.position.set(0,0,0);
 		mesh.scale.set(0.01,0.01,0.01)
-	
-		// //add physics to character
-		// const meshPhysMat = new CANNON.Material();
-		// const meshBody = new CANNON.Body({
-		// 	mass: 2,
-		// 	shape: new CANNON.Sphere(1.6),
-		// 	position: new CANNON.Vec3(mesh.position),
-		// 	material: meshPhysMat
-		// });
-		// world.addBody(meshBody);
-		scene.add(mesh);
-		//console.log()
+		mesh.position.set(0,1,0);
+
+		safe.add(mesh);
 	},
 
 	(xhr) => {
@@ -176,6 +168,9 @@ loader1.load('models/safe/scene.gltf',
         console.error('Error loading GLTF model:', error);
     }
 );
+
+scene.add(safe)
+safe.position.x = 4
 
 // Score and collectible count
 let collectibleCount = 5; // Change this value based on the number of collectibles in your scene
@@ -233,15 +228,29 @@ function checkCollectibleInteractions() {
 	}
 }
 
-function addToInventory (item) {
+//inventory
+class inventoryItem {
+	constructor(name) {
+		this.name = name;
+	}
+};
+
+let inventoryList = []
+
+function addToInventory (name) {
+	//add to screen
     var inv = document.getElementById("inventory");
-    var html = '<div class = "inv-item">' + item + '</div>';
+	//var img = '<img src = "'+ name +'.jpg"></img>';
+	var img = '';
+    var html = '<div class = "inv-item">' + img + '</div>';
     inv.insertAdjacentHTML("beforeend", html);
+
+	//add to list
+	inventoryList.push(new inventoryItem(name));
 }
 
 //keys for character control
 let fwd, bkd, rgt, lft, spc, dwn = false, movKey = false;
-
 window.addEventListener('keydown', function (e) {
 	switch (e.code) {
 		case 'KeyW': fwd = true; break;
@@ -250,9 +259,7 @@ window.addEventListener('keydown', function (e) {
 		case 'KeyA': lft = true; break;
 		//case 'Space': spc = true; break;
 	}
-
 });
-
 window.addEventListener('keyup', function (e) {
 	dwn = false;
 	movKey = false;
@@ -267,14 +274,13 @@ window.addEventListener('keyup', function (e) {
 		//case 'Space': spc = false; break;
 	}
 });
-
 function updateKey() {
-	if (!dwn) {
-		if (fwd) { dwn = true; person.rotation.y = 0 * Math.PI / 180; p = [0, -0.05]; movKey = true; }
-		if (bkd) { dwn = true; person.rotation.y = 180 * Math.PI / 180; p = [0, 0.05]; movKey = true; }
-		if (lft) { dwn = true; person.rotation.y = 90 * Math.PI / 180; p = [-0.05, 0]; movKey = true; }
-		if (rgt) { dwn = true; person.rotation.y = -90 * Math.PI / 180; p = [0.05, 0]; movKey = true; }
-
+	if (!dwn) {	
+		if (fwd) { console.log('w'); dwn = true; person.rotation.y = 0 * Math.PI / 180; p = [0, -0.05]; movKey = true;}
+		if (bkd) { console.log('s'); dwn = true; person.rotation.y = 180 * Math.PI / 180; p = [0, 0.05]; movKey = true; }
+		if (lft) { console.log('a'); dwn = true; person.rotation.y = 90 * Math.PI / 180; p = [-0.05, 0]; movKey = true; }
+		if (rgt) { console.log('d'); dwn = true; person.rotation.y = -90 * Math.PI / 180; p = [0.05, 0]; movKey = true; }
+		//if ( spc ) {console.log('space'); dwn=true; charSwitch()}
 		if (movKey) {
 			mixer._actions[0].enabled = false;
 			mixer._actions[1].enabled = true;
@@ -303,57 +309,67 @@ function light1() {
 
 light1();
 
-class Surveilence extends THREE.Mesh {
+//surveilence camera
+const s = new THREE.Group()
+
+class Surveilence {
     constructor() {
-        super(
-            new THREE.SphereGeometry(0.1),
-            new THREE.MeshNormalMaterial()
-        )
-		this.position.set(0, 3, 0)
+        this.camera = new GLTFLoader().load('models/camera/scene.gltf',
+			(gltf) => {
+				var m = gltf.scene;
+				m.position.set(0, 2.4, 0)
+				scene.add(m);
+			})
     }
 }
 
-const s = new THREE.Group()
-scene.add(s)
 s.add(new Surveilence())
-var gaze = new THREE.SpotLight(0xffee00, 10, 5, Math.PI/6, 1, 0)
-gaze.position.set(0.1, 3, 0)
 
-s.add(gaze)
-s.add(gaze.target)
-gaze.target.position.x = 1
+//camera light
+var view = new THREE.SpotLight(0xffee00, 3, 5, Math.PI/6, 1, 0)
+view.position.set(0.1, 3, 0)
 
-s.position.set(0, 0, 0)
-s.rotation.y = 0
+s.add(view)
+s.add(view.target)
 
-const geometry = new THREE.ConeGeometry( 2.3, 4); 
+//light cone
+const geometry = new THREE.ConeGeometry( 2, 4); 
 const material = new THREE.MeshBasicMaterial( {color: 0xffff00} );
 const cone = new THREE.Mesh(geometry, material ); 
 cone.material.transparent = true
 cone.material.opacity = 0.04
+
+//angling the cone
 cone.position.set(0.67, 1.05, 0)
 cone.rotation.set(0, 0, 0.27)
 s.add( cone );
-console.log(cone)
 
+s.rotation.y = 0
+s.position.set(0, 0, 0)
+view.target.position.x = 1
+
+scene.add(s)
+
+//rotation variables
 var r = 0.01
-var t = new THREE.Vector3(1, 0, 0)
+var t = new THREE.Vector3().copy(view.target.position); //keeps track of light focus location
 
 //render or animate
 function render() {
 
 	//Collectable items
     checkCollectibleInteractions();
-	//checkCheckpoint();
 
 	//character controls and camera movement
 	if (person) {
 		updateKey();
 		person.position.x += p[0]; person.position.z += p[1];
-		camera.lookAt(person.position);
+		
+		var pos = new THREE.Vector3().copy(person.position);
+		camera.lookAt(pos.add(new THREE.Vector3(0, 2, 0)));
 		camera.position.x = person.position.x;
-		camera.position.y = 3;
-		camera.position.z = person.position.z + 4;
+		camera.position.y = person.position.y + 2;
+		camera.position.z = person.position.z;
 	}
 
 	//Animation update for player standing type
@@ -363,28 +379,26 @@ function render() {
 	//World meaning physics added to models,objects and plane
 	world.step(1 / 60); //Update phyics by this step
 
-	// planeMesh.position.copy(planeBody.position);
-	// planeBody.quaternion.copy(planeBody.quaternion);
+	planeMesh.position.copy(planeBody.position);
+	planeBody.quaternion.copy(planeBody.quaternion);
 
 	if (person) {
 		personBody.position.copy(person.position);
 		personBody.quaternion.copy(person.quaternion);
 	}
 
-	if (Math.abs(s.rotation.y) > Math.PI/2)
+	//move light across the floor
+	if (Math.abs(s.rotation.y) > Math.PI)
 		r *= -1;
-
 	s.rotation.y += r
-	t = new THREE.Vector3(Math.cos(s.rotation.y), Math.sin(s.rotation.y), 0)
+	t.copy(new THREE.Vector3(Math.cos(s.rotation.y), 0, Math.sin(-s.rotation.y))); //update t 
 
+	//detect if person is in the camera view
 	if (person) {	
-		let distance = t.distanceTo(person.position)
-		//console.log(distance)
-		if(distance < 1.7)
+		let distance = person.position.distanceTo(t)
+		if(distance < 1.5)
 		{
 			console.log("collision detected!")
-			//console.log(t)
-
 		}
 	}
 

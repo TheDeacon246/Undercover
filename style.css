@@ -161,4 +161,5 @@ button:focus-visible {
   width: 15vh;
   opacity: 1;
   border: 1px solid #213547;
+  object-fit: fill;
 }
