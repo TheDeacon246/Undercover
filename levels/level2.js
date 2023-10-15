@@ -5,7 +5,7 @@ import * as CANNON from 'cannon-es';
 
 //Some of the global variables
 let p = [0, 0]; //update person position
-let bool = true, mixer, clock = new THREE.Clock(), controls;
+let bool = true, mixer, mixer2, clock = new THREE.Clock(), controls;
 
 //creating 3d physics world
 const world = new CANNON.World({
@@ -317,7 +317,17 @@ class Surveilence {
         this.camera = new GLTFLoader().load('models/camera/scene.gltf',
 			(gltf) => {
 				var m = gltf.scene;
-				m.position.set(0, 2.4, 0)
+				m.position.set(0, 2.58, -0.8)
+
+				// Create an AnimationMixer, and get the list of AnimationClip instances
+				mixer2 = new THREE.AnimationMixer( m );
+				const clips = m.animations;
+				console.log(gltf)
+
+				// Update the mixer on each frame
+				mixer2.clipAction(gltf.animations[1]).setDuration(10).play();
+				mixer2.clipAction(gltf.animations[0]).setDuration(7).play();
+
 				scene.add(m);
 			})
     }
@@ -366,15 +376,20 @@ function render() {
 		person.position.x += p[0]; person.position.z += p[1];
 		
 		var pos = new THREE.Vector3().copy(person.position);
-		camera.lookAt(pos.add(new THREE.Vector3(0, 2, 0)));
+		camera.lookAt(person.position);
 		camera.position.x = person.position.x;
-		camera.position.y = person.position.y + 2;
-		camera.position.z = person.position.z;
+		camera.position.y = 3;
+		camera.position.z = person.position.z +4;
+		// camera.lookAt(pos.add(new THREE.Vector3(0, 2, 0)));
+		// camera.position.x = person.position.x;
+		// camera.position.y = person.position.y + 2;
+		// camera.position.z = person.position.z;
 	}
 
 	//Animation update for player standing type
 	const clockDelta = clock.getDelta();
 	if (mixer) { mixer.update(clockDelta); }
+	if (mixer2) { mixer2.update(clockDelta); }
 
 	//World meaning physics added to models,objects and plane
 	world.step(1 / 60); //Update phyics by this step
@@ -388,7 +403,7 @@ function render() {
 	}
 
 	//move light across the floor
-	if (Math.abs(s.rotation.y) > Math.PI)
+	if (Math.abs(s.rotation.y) > Math.PI/4)
 		r *= -1;
 	s.rotation.y += r
 	t.copy(new THREE.Vector3(Math.cos(s.rotation.y), 0, Math.sin(-s.rotation.y))); //update t 
