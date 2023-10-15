@@ -12,8 +12,8 @@ const world = new CANNON.World({
 	gravity: new CANNON.Vec3(0, -9.81, 0)
 });
 
-let planeGeometry, planeMesh, planeBody; //world variables
-let roofGeometry, roofMesh, roofBody; //world variables
+let planeGeometry, planeMesh, planeBody; //floor variables
+let roofGeometry, roofMesh, roofBody; //roof variables
 
 // Scene
 const scene = new THREE.Scene();
