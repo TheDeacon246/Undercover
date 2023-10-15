@@ -125,10 +125,14 @@ loader.load('models/Soldier.glb', function (gltf) {
 
 //house model
 loader2.load('models/house/scene.gltf', 
-	(gltf3) => {
-		mesh = gltf3.scene;
-		mesh.scale.set(1.5, 1.5, 1.5)
-		mesh.position.set(70, 0, -70);
+	(gltf) => {
+		mesh = gltf.scene;
+		mesh.traverse(function (node) {
+		if (node.isMesh) { node.castShadow = true; }
+		});
+		mesh.position.set(0, 0, 0);
+		mesh.scale.set(0.01, 0.01, 0.01)
+		mesh.position.y = -2.6
 	
 		scene.add(mesh);
 		
@@ -379,7 +383,7 @@ function render() {
 		camera.lookAt(person.position);
 		camera.position.x = person.position.x;
 		camera.position.y = 3;
-		camera.position.z = person.position.z +4;
+		camera.position.z = person.position.z + 4;
 		// camera.lookAt(pos.add(new THREE.Vector3(0, 2, 0)));
 		// camera.position.x = person.position.x;
 		// camera.position.y = person.position.y + 2;
