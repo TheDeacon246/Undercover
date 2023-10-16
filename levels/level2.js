@@ -13,11 +13,10 @@ const world = new CANNON.World({
 });
 
 let planeGeometry, planeMesh, planeBody; //floor variables
-let roofGeometry, roofMesh, roofBody; //roof variables
 
 // Scene
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x8a8a8a);
+scene.background = new THREE.Color(0x87ceeb);
 
 //renderer
 const renderer = new THREE.WebGLRenderer();
@@ -32,7 +31,6 @@ scene.add(container);
 
 // Camera and controls
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1000);
-container.add(new THREE.CameraHelper(camera))
 container.add(camera);
 
 //Light for outside "sun"
@@ -40,10 +38,10 @@ const sun = new THREE.AmbientLight(0x404040);
 scene.add(sun);
 
 //Ground function as floor
-createFloor();
+//createFloor();
 
 function createFloor() {
-	var material = new THREE.MeshPhongMaterial();
+	var material = new THREE.MeshPhongMaterial({color: 0xFFF999});
 
 	planeGeometry = new THREE.PlaneGeometry(30, 30)
 	planeMesh = new THREE.Mesh(planeGeometry, material)
@@ -56,35 +54,13 @@ function createFloor() {
 		shape: new CANNON.Box(new CANNON.Vec3(5, 5, 0.1))
 	})
 
+	planeBody.position.y = -5
 	planeBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0)
 	world.addBody(planeBody)
 }
 
-// function createRoof() {
-// 	var material = new THREE.MeshPhongMaterial();
-
-// 	roofGeometry = new THREE.PlaneGeometry(30, 30)
-// 	roofMesh = new THREE.Mesh(roofGeometry, material)
-// 	roofMesh.rotateX(-Math.PI / 2)
-// 	roofMesh.receiveShadow = true
-// 	roofMesh.position.y = 3;
-// 	scene.add(roofMesh)
-
-// 	roofBody = new CANNON.Body({
-// 		type: CANNON.Body.STATIC,
-// 		shape: new CANNON.Box(new CANNON.Vec3(5, 8, 0.1))
-// 	})
-
-// 	roofBody.quaternion.setFromEuler(-Math.PI / 2, 3, 0)
-// 	world.addBody(roofBody)
-// }
-
-// createRoof();
-
 //Model Loaders
 const loader = new GLTFLoader();
-const loader1 = new GLTFLoader();
-const loader2 = new GLTFLoader();
 
 //person physics
 const personPhysMat = new CANNON.Material();
@@ -101,6 +77,7 @@ let personBody;
 //Add soldier model
 loader.load('models/Soldier.glb', function (gltf) {
 	person = gltf.scene;
+	person.position.y = -3
 	person.traverse(function (node) {
 		if (node.isMesh) { node.castShadow = true; }
 	});
@@ -124,14 +101,13 @@ loader.load('models/Soldier.glb', function (gltf) {
 );
 
 //house model
-loader2.load('models/house/scene.gltf', 
+loader.load('models/house/scene.glb', 
 	(gltf) => {
 		mesh = gltf.scene;
 		mesh.traverse(function (node) {
 		if (node.isMesh) { node.castShadow = true; }
 		});
 		mesh.position.set(0, 0, 0);
-		mesh.scale.set(0.01, 0.01, 0.01)
 		mesh.position.y = -2.6
 	
 		scene.add(mesh);
@@ -152,9 +128,9 @@ loader2.load('models/house/scene.gltf',
 var safe = new THREE.Group();
 
 //safe model
-loader1.load('models/safe/scene.gltf', 
-	(gltf2) => {
-		mesh = gltf2.scene;
+loader.load('models/safe/scene.gltf', 
+	(gltf) => {
+		mesh = gltf.scene;
 		mesh.position.set(0,0,0);
 		mesh.scale.set(0.01,0.01,0.01)
 		mesh.position.set(0,1,0);
@@ -280,10 +256,10 @@ window.addEventListener('keyup', function (e) {
 });
 function updateKey() {
 	if (!dwn) {	
-		if (fwd) { console.log('w'); dwn = true; person.rotation.y = 0 * Math.PI / 180; p = [0, -0.05]; movKey = true;}
-		if (bkd) { console.log('s'); dwn = true; person.rotation.y = 180 * Math.PI / 180; p = [0, 0.05]; movKey = true; }
-		if (lft) { console.log('a'); dwn = true; person.rotation.y = 90 * Math.PI / 180; p = [-0.05, 0]; movKey = true; }
-		if (rgt) { console.log('d'); dwn = true; person.rotation.y = -90 * Math.PI / 180; p = [0.05, 0]; movKey = true; }
+		if (fwd) { console.log('w'); dwn = true; person.rotation.y = 0 * Math.PI / 180; p = [0, -0.5]; movKey = true;}
+		if (bkd) { console.log('s'); dwn = true; person.rotation.y = 180 * Math.PI / 180; p = [0, 0.5]; movKey = true; }
+		if (lft) { console.log('a'); dwn = true; person.rotation.y = 90 * Math.PI / 180; p = [-0.5, 0]; movKey = true; }
+		if (rgt) { console.log('d'); dwn = true; person.rotation.y = -90 * Math.PI / 180; p = [0.5, 0]; movKey = true; }
 		//if ( spc ) {console.log('space'); dwn=true; charSwitch()}
 		if (movKey) {
 			mixer._actions[0].enabled = false;
@@ -377,13 +353,14 @@ function render() {
 	//character controls and camera movement
 	if (person) {
 		updateKey();
-		person.position.x += p[0]; person.position.z += p[1];
+		person.position.x += p[0]; 
+		person.position.z += p[1];
 		
 		var pos = new THREE.Vector3().copy(person.position);
 		camera.lookAt(person.position);
 		camera.position.x = person.position.x;
-		camera.position.y = 3;
-		camera.position.z = person.position.z + 4;
+		camera.position.y = 10;
+		camera.position.z = 0;
 		// camera.lookAt(pos.add(new THREE.Vector3(0, 2, 0)));
 		// camera.position.x = person.position.x;
 		// camera.position.y = person.position.y + 2;
@@ -398,8 +375,8 @@ function render() {
 	//World meaning physics added to models,objects and plane
 	world.step(1 / 60); //Update phyics by this step
 
-	planeMesh.position.copy(planeBody.position);
-	planeBody.quaternion.copy(planeBody.quaternion);
+	// planeMesh.position.copy(planeBody.position);
+	// planeBody.quaternion.copy(planeBody.quaternion);
 
 	if (person) {
 		personBody.position.copy(person.position);
