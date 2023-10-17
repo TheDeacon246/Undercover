@@ -491,5 +491,7 @@ function endGame(){
 	element.innerHTML = "LEVEL \nCOMPLETE :)"
 	element.id = "gameover"
 	document.body.appendChild(element)
+
+	//location.replace("htmls/level-3.html"); //switch between htmls
 }
 

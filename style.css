@@ -196,7 +196,7 @@ button:focus-visible {
   width: 100px;
   opacity: 1;
   border: 1px solid #213547;
-  object-fit: fill;
+  object-fit: contain;
 }
 
 .inv-item:hover {
