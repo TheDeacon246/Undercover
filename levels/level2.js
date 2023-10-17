@@ -456,7 +456,7 @@ function render() {
 
 	//detect if person is in the camera view
 	if (person) {	
-		if(person.position.distanceTo(t) < 2.5)
+		if(person.position.distanceTo(t) < 0.5)
 		{
 			restart();
 		}
@@ -467,7 +467,7 @@ function render() {
 		// 	zoomed = 1;
 		// }
 
-		if (person.position.distanceTo(new THREE.Vector3(-4.7,0,-6.5)) < 0.5 && selectedItem == "key") {
+		if (person.position.distanceTo(new THREE.Vector3(-4.7,0,-6.5)) < 1.5 && selectedItem == "key") {
 			removeFromInventory("key");
 			stopGame = 1;
 		}
