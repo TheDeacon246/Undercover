@@ -146,10 +146,11 @@ button:focus-visible {
   position: fixed;
   background-color: rgba(110, 127, 128, 0.12);
   height: 90vh;
-  width: 8%;
+  width: 9%;
   margin: 25px;
   padding: 10px;
-  overflow: clip;
+  overflow-x: clip;
+  overflow-y: auto;
 }
 
 .inv-item {
@@ -157,9 +158,37 @@ button:focus-visible {
   margin-left: auto;
   margin-right: auto;
   margin-bottom: 10px;
-  height: 15vh;
-  width: 15vh;
+  height: 100px;
+  width: 100px;
   opacity: 1;
   border: 1px solid #213547;
   object-fit: fill;
+}
+
+.inv-item:hover {
+  border-color: #007bff;
+}
+
+.inv-item:focus {
+  border-color: #007bff;
+}
+
+#inventory::-webkit-scrollbar {
+  width: 12px;
+}
+
+#inventory::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.3)
+}
+
+#inventory::-webkit-scrollbar-thumb {
+  background: #999;
+}
+
+#inventory::-webkit-scrollbar-thumb:hover {
+  background: #777;
+}
+
+#inventory::-webkit-scrollbar-button {
+  display: none;
 }

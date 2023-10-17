@@ -3,26 +3,21 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import * as CANNON from 'cannon-es';
 
-//Some of the global variables
-let p = [0, 0]; //update person position
-let bool = true, mixer, mixer2, clock = new THREE.Clock(), controls;
-
+// Scene, world and lighting -----------------------------------------------------------------------------------------------------------------------------------
 //creating 3d physics world
 const world = new CANNON.World({
 	gravity: new CANNON.Vec3(0, -9.81, 0)
 });
 
-let planeGeometry, planeMesh, planeBody; //floor variables
-
 // Scene
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87ceeb);
+scene.background = new THREE.Color(0x87ceeb); //sky blue
 
 //renderer
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight); //might need a resize function
 renderer.setPixelRatio(window.devicePixelRatio);
-renderer.shadowMap.enabled = true;
+renderer.shadowMap.enabled = true; //enable shadows
 document.body.appendChild(renderer.domElement);
 
 // Container for both camera and person
@@ -37,9 +32,10 @@ container.add(camera);
 const sun = new THREE.AmbientLight(0x404040);
 scene.add(sun);
 
-//Ground function as floor
+// Floor -----------------------------------------------------------------------------------------------------------------------------------
 //createFloor();
 
+let planeGeometry, planeMesh, planeBody; //floor variables
 function createFloor() {
 	var material = new THREE.MeshPhongMaterial({color: 0xFFF999});
 
@@ -59,13 +55,10 @@ function createFloor() {
 	world.addBody(planeBody)
 }
 
-//Model Loaders
-const loader = new GLTFLoader();
-
 //person physics
 const personPhysMat = new CANNON.Material();
 
-let person, mesh;
+let person;
 
 const personContactMat = new CANNON.ContactMaterial(
 	personPhysMat,
@@ -73,6 +66,11 @@ const personContactMat = new CANNON.ContactMaterial(
 );
 
 let personBody;
+
+// Loading Models  ----------------------------------------------------------------------------------------------------------------------------
+const loader = new GLTFLoader(); //Model Loader
+var mesh; //model mesh
+let mixer, mixer2; //animate animated objects
 
 //Add soldier model
 loader.load('models/Soldier.glb', function (gltf) {
@@ -104,14 +102,15 @@ loader.load('models/Soldier.glb', function (gltf) {
 loader.load('models/house/scene.glb', 
 	(gltf) => {
 		mesh = gltf.scene;
-		mesh.traverse(function (node) {
-		if (node.isMesh) { node.castShadow = true; }
+		mesh.traverse(function (node) { //house casts shadow
+			if (node.isMesh) { 
+				node.castShadow = true; 
+			}
 		});
 		mesh.position.set(0, 0, 0);
-		mesh.position.y = -2.6
+		mesh.position.y = -2.6;
 	
 		scene.add(mesh);
-		
 	},
 
 	(xhr) => {
@@ -125,6 +124,7 @@ loader.load('models/house/scene.glb',
     }
 );
 
+//allow safe to be moved
 var safe = new THREE.Group();
 
 //safe model
@@ -152,9 +152,9 @@ loader.load('models/safe/scene.gltf',
 scene.add(safe)
 safe.position.x = 4
 
-// Score and collectible count
-let collectibleCount = 5; // Change this value based on the number of collectibles in your scene
+// Collectibles and Inventory  -----------------------------------------------------------------------------------------------------
 
+// Collectibles: items for player to collect to solve puzzles with
 class Collectible extends THREE.Mesh{
     constructor({name}) {
         super(
@@ -165,26 +165,12 @@ class Collectible extends THREE.Mesh{
     }
 }
 
-// Function to create collectible cubes
+// Function to create collectible items
 function createCollectible(x, y, z, name) {
 	const c = new Collectible({name: name});
     c.position.set(x, y, z);
 	scene.add(c);
 }
-
-// Create collectible cubes at random positions
-for (let i = 0; i < collectibleCount; i++) {
-	const x = Math.random() * 20 - 10; // Random x position between -10 and 10
-	const y = 0.5; // Set to half of the player's height
-	const z = Math.random() * 20 - 10; // Random z position between -10 and 10
-	createCollectible(x, y, z, "box");
-}
-
-// // Function to handle interactions with collectibles
-// function handleCollectibleInteraction() {
-// 	// Update UI to display the current score and collectible count
-	
-// }
 
 // Event listener for player interaction with collectibles
 function checkCollectibleInteractions() {
@@ -202,31 +188,58 @@ function checkCollectibleInteractions() {
                 scene.remove(object);
                 addToInventory(object.name);
                 console.log(`Collected: ${object.name}`);
-				//handleCollectibleInteraction();
 			}
 		}
 	}
 }
 
-//inventory
-class inventoryItem {
-	constructor(name) {
-		this.name = name;
-	}
-};
+let inventoryList = []; //list of items currently in player inventory
+let selectedItem = ""; //stores name of clicked item
 
-let inventoryList = []
-
+//add to screen and list
 function addToInventory (name) {
 	//add to screen
     var inv = document.getElementById("inventory");
 	//var img = '<img src = "'+ name +'.jpg"></img>';
 	var img = '';
-    var html = '<div class = "inv-item">' + img + '</div>';
+    var html = '<div class = "inv-item" id = "' + name + '">' + name + img + '</div>'; //div with id name and image of inv item
     inv.insertAdjacentHTML("beforeend", html);
 
+	//ensure each item has a listener
+	inv.lastChild.addEventListener("click", (e) => {
+		const div = e.target; //entire div
+        const item = div.id; //div id
+
+		//delect item if there is selected
+		if (selectedItem != "") { 
+			const deselect = document.getElementById(selectedItem);
+			deselect.style.borderColor = "#213547"; //unselected colour
+			selectedItem = "";
+		}
+
+		div.style.borderColor = "#007bff"; //item border blue
+		selectedItem = item; //select item
+	});
+
 	//add to list
-	inventoryList.push(new inventoryItem(name));
+	inventoryList.push(name);
+}
+
+//remove from screen and list
+function removeFromInventory (name) {
+    var inv = document.getElementById("inventory"); //fetch inventory tray
+	var children = inv.childNodes;//fetch inventory elements
+    
+	//loop through to find item
+	children.forEach(child => {
+		if(child.id == name)			
+			inv.removeChild(child);
+	});
+
+	//remove from list
+	const index = inventoryList.indexOf(name);
+	if (index != -1)
+		inventoryList.splice(index, 1); //remove 1 item starting from index
 }
 
 //keys for character control
@@ -302,7 +315,6 @@ class Surveilence {
 				// Create an AnimationMixer, and get the list of AnimationClip instances
 				mixer2 = new THREE.AnimationMixer( m );
 				const clips = m.animations;
-				console.log(gltf)
 
 				// Update the mixer on each frame
 				mixer2.clipAction(gltf.animations[1]).setDuration(10).play();
@@ -343,6 +355,20 @@ scene.add(s)
 //rotation variables
 var r = 0.01
 var t = new THREE.Vector3().copy(view.target.position); //keeps track of light focus location
+
+//render variables
+let clock = new THREE.Clock();
+let p = [0, 0]; //update person position
+
+function zoomIn() {
+	camera.fov *= 0.3;
+	camera.updateProjectionMatrix();
+}
+
+function zoomOut() {
+	camera.fov *= -0.3;
+	camera.updateProjectionMatrix();
+}
 
 //render or animate
 function render() {
@@ -391,10 +417,10 @@ function render() {
 
 	//detect if person is in the camera view
 	if (person) {	
-		let distance = person.position.distanceTo(t)
-		if(distance < 1.5)
+		let distance = person.position.distanceTo(safe.position)
+		if(distance < 0.5)
 		{
-			console.log("collision detected!")
+			//restart level
 		}
 	}
 
