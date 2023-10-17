@@ -1,10 +1,302 @@
-import './style.css'
-import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
-import { AnimationClip, AnimationMixer } from "three";
-import { FlyControls } from 'three/examples/jsm/controls/FlyControls'
-import * as CANNON from 'cannon-es';
+//DO NOT PAY ATTENTION TO CODE PRIOR TO LINE 312!!!!!!!!!!!
+import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+
+var THREEx = THREEx || {};
+
+THREEx.FullScreen = THREEx.FullScreen || {};
+
+/**
+ * test if it is possible to have fullscreen
+ * 
+ * @returns {Boolean} true if fullscreen API is available, false otherwise
+*/
+THREEx.FullScreen.available = function () {
+	return this._hasWebkitFullScreen || this._hasMozFullScreen;
+}
+
+/**
+ * test if fullscreen is currently activated
+ * 
+ * @returns {Boolean} true if fullscreen is currently activated, false otherwise
+*/
+THREEx.FullScreen.activated = function () {
+	if (this._hasWebkitFullScreen) {
+		return document.webkitIsFullScreen;
+	} else if (this._hasMozFullScreen) {
+		return document.mozFullScreen;
+	} else {
+		console.assert(false);
+	}
+}
+
+/**
+ * Request fullscreen on a given element
+ * @param {DomElement} element to make fullscreen. optional. default to document.body
+*/
+THREEx.FullScreen.request = function (element) {
+	element = element || document.body;
+	if (this._hasWebkitFullScreen) {
+		element.webkitRequestFullScreen(Element.ALLOW_KEYBOARD_INPUT);
+	} else if (this._hasMozFullScreen) {
+		element.mozRequestFullScreen();
+	} else {
+		console.assert(false);
+	}
+}
+
+/**
+ * Cancel fullscreen
+*/
+THREEx.FullScreen.cancel = function () {
+	if (this._hasWebkitFullScreen) {
+		document.webkitCancelFullScreen();
+	} else if (this._hasMozFullScreen) {
+		document.mozCancelFullScreen();
+	} else {
+		console.assert(false);
+	}
+}
+
+// internal functions to know which fullscreen API implementation is available
+THREEx.FullScreen._hasWebkitFullScreen = 'webkitCancelFullScreen' in document ? true : false;
+THREEx.FullScreen._hasMozFullScreen = 'mozCancelFullScreen' in document ? true : false;
+
+/**
+ * Bind a key to renderer screenshot
+ * usage: THREEx.FullScreen.bindKey({ charCode : 'a'.charCodeAt(0) }); 
+*/
+THREEx.FullScreen.bindKey = function (opts) {
+	opts = opts || {};
+	var charCode = opts.charCode || 'f'.charCodeAt(0);
+	var dblclick = opts.dblclick !== undefined ? opts.dblclick : false;
+	var element = opts.element
+
+	var toggle = function () {
+		if (THREEx.FullScreen.activated()) {
+			THREEx.FullScreen.cancel();
+		} else {
+			THREEx.FullScreen.request(element);
+		}
+	}
+
+	var onKeyPress = function (event) {
+		if (event.which !== charCode) return;
+		toggle();
+	}.bind(this);
+
+	document.addEventListener('keypress', onKeyPress, false);
+
+	dblclick && document.addEventListener('dblclick', toggle, false);
+
+	return {
+		unbind: function () {
+			document.removeEventListener('keypress', onKeyPress, false);
+			dblclick && document.removeEventListener('dblclick', toggle, false);
+		}
+	};
+}
+
+
+/**
+ * Update renderer and camera when the window is resized
+ * 
+ * @param {Object} renderer the renderer to update
+ * @param {Object} Camera the camera to update
+*/
+THREEx.WindowResize = function (renderer, camera) {
+	var callback = function () {
+		// notify the renderer of the size change
+		renderer.setSize(window.innerWidth, window.innerHeight);
+		// update the camera
+		camera.aspect = window.innerWidth / window.innerHeight;
+		camera.updateProjectionMatrix();
+	}
+	// bind the resize event
+	window.addEventListener('resize', callback, false);
+	// return .stop() the function to stop watching window resize
+	return {
+		/**
+		 * Stop watching window resize
+		*/
+		stop: function () {
+			window.removeEventListener('resize', callback);
+		}
+	};
+}
+
+
+THREEx.KeyboardState = function () {
+	// to store the current state
+	this.keyCodes = {};
+	this.modifiers = {};
+
+	// create callback to bind/unbind keyboard events
+	var self = this;
+	this._onKeyDown = function (event) { self._onKeyChange(event, true); };
+	this._onKeyUp = function (event) { self._onKeyChange(event, false); };
+
+	// bind keyEvents
+	document.addEventListener("keydown", this._onKeyDown, false);
+	document.addEventListener("keyup", this._onKeyUp, false);
+}
+
+/**
+ * To stop listening of the keyboard events
+*/
+THREEx.KeyboardState.prototype.destroy = function () {
+	// unbind keyEvents
+	document.removeEventListener("keydown", this._onKeyDown, false);
+	document.removeEventListener("keyup", this._onKeyUp, false);
+}
+
+THREEx.KeyboardState.MODIFIERS = ['shift', 'ctrl', 'alt', 'meta'];
+THREEx.KeyboardState.ALIAS = {
+	'left': 37,
+	'up': 38,
+	'right': 39,
+	'down': 40,
+	'space': 32,
+	'pageup': 33,
+	'pagedown': 34,
+	'enter': 13,
+	'escape': 27,
+	'lbracket': 219,
+	'rbracket': 221,
+	'tab': 9
+};
+
+/**
+ * to process the keyboard dom event
+*/
+THREEx.KeyboardState.prototype._onKeyChange = function (event, pressed) {
+	// log to debug
+	//console.log("onKeyChange", event, pressed, event.keyCode, event.shiftKey, event.ctrlKey, event.altKey, event.metaKey)
+
+	// update this.keyCodes
+	var keyCode = event.keyCode;
+	this.keyCodes[keyCode] = pressed;
+
+	// update this.modifiers
+	this.modifiers['shift'] = event.shiftKey;
+	this.modifiers['ctrl'] = event.ctrlKey;
+	this.modifiers['alt'] = event.altKey;
+	this.modifiers['meta'] = event.metaKey;
+}
+
+/**
+ * query keyboard state to know if a key is pressed of not
+ *
+ * @param {String} keyDesc the description of the key. format : modifiers+key e.g shift+A
+ * @returns {Boolean} true if the key is pressed, false otherwise
+*/
+THREEx.KeyboardState.prototype.pressed = function (keyDesc) {
+	var keys = keyDesc.split("+");
+	for (var i = 0; i < keys.length; i++) {
+		var key = keys[i];
+		var pressed;
+		if (THREEx.KeyboardState.MODIFIERS.indexOf(key) !== -1) {
+			pressed = this.modifiers[key];
+		}
+		else if (Object.keys(THREEx.KeyboardState.ALIAS).indexOf(key) != -1) {
+			pressed = this.keyCodes[THREEx.KeyboardState.ALIAS[key]];
+		}
+		else {
+			pressed = this.keyCodes[key.toUpperCase().charCodeAt(0)]
+		}
+		if (!pressed) return false;
+	};
+	return true;
+}
+
+var Stats = function () {
+	var h, a, n = 0, o = 0, i = Date.now(), u = i, p = i, l = 0, q = 1E3, r = 0, e, j, f, b = [[16, 16, 48], [0, 255, 255]], m = 0, s = 1E3, t = 0, d, k, g, c = [[16, 48, 16], [0, 255, 0]];
+	h = document.createElement("div");
+	h.style.cursor = "pointer";
+	h.style.width = "80px";
+	h.style.opacity = "0.9";
+	h.style.zIndex = "10001";
+	h.addEventListener("mousedown", function (a) {
+		a.preventDefault();
+		n = (n + 1) % 2;
+		n == 0 ? (e.style.display = "block",
+			d.style.display = "none") : (e.style.display = "none",
+				d.style.display = "block")
+	}, !1);
+	e = document.createElement("div");
+	e.style.textAlign = "left";
+	e.style.lineHeight = "1.2em";
+	e.style.backgroundColor = "rgb(" + Math.floor(b[0][0] / 2) + "," + Math.floor(b[0][1] / 2) + "," + Math.floor(b[0][2] / 2) + ")";
+	e.style.padding = "0 0 3px 3px";
+	h.appendChild(e);
+	j = document.createElement("div");
+	j.style.fontFamily = "Helvetica, Arial, sans-serif";
+	j.style.fontSize = "9px";
+	j.style.color = "rgb(" + b[1][0] + "," + b[1][1] + "," + b[1][2] + ")";
+	j.style.fontWeight = "bold";
+	j.innerHTML = "FPS";
+	e.appendChild(j);
+	f = document.createElement("div");
+	f.style.position = "relative";
+	f.style.width = "74px";
+	f.style.height = "30px";
+	f.style.backgroundColor = "rgb(" + b[1][0] + "," + b[1][1] + "," + b[1][2] + ")";
+	for (e.appendChild(f); f.children.length < 74;)
+		a = document.createElement("span"),
+			a.style.width = "1px",
+			a.style.height = "30px",
+			a.style.cssFloat = "left",
+			a.style.backgroundColor = "rgb(" + b[0][0] + "," + b[0][1] + "," + b[0][2] + ")",
+			f.appendChild(a);
+	d = document.createElement("div");
+	d.style.textAlign = "left";
+	d.style.lineHeight = "1.2em";
+	d.style.backgroundColor = "rgb(" + Math.floor(c[0][0] / 2) + "," + Math.floor(c[0][1] / 2) + "," + Math.floor(c[0][2] / 2) + ")";
+	d.style.padding = "0 0 3px 3px";
+	d.style.display = "none";
+	h.appendChild(d);
+	k = document.createElement("div");
+	k.style.fontFamily = "Helvetica, Arial, sans-serif";
+	k.style.fontSize = "9px";
+	k.style.color = "rgb(" + c[1][0] + "," + c[1][1] + "," + c[1][2] + ")";
+	k.style.fontWeight = "bold";
+	k.innerHTML = "MS";
+	d.appendChild(k);
+	g = document.createElement("div");
+	g.style.position = "relative";
+	g.style.width = "74px";
+	g.style.height = "30px";
+	g.style.backgroundColor = "rgb(" + c[1][0] + "," + c[1][1] + "," + c[1][2] + ")";
+	for (d.appendChild(g); g.children.length < 74;)
+		a = document.createElement("span"),
+			a.style.width = "1px",
+			a.style.height = Math.random() * 30 + "px",
+			a.style.cssFloat = "left",
+			a.style.backgroundColor = "rgb(" + c[0][0] + "," + c[0][1] + "," + c[0][2] + ")",
+			g.appendChild(a);
+	return {
+		domElement: h,
+		update: function () {
+			i = Date.now();
+			m = i - u;
+			s = Math.min(s, m);
+			t = Math.max(t, m);
+			k.textContent = m + " MS (" + s + "-" + t + ")";
+			var a = Math.min(30, 30 - m / 200 * 30);
+			g.appendChild(g.firstChild).style.height = a + "px";
+			u = i;
+			o++;
+			if (i > p + 1E3)
+				l = Math.round(o * 1E3 / (i - p)),
+					q = Math.min(q, l),
+					r = Math.max(r, l),
+					j.textContent = l + " FPS (" + q + "-" + r + ")",
+					a = Math.min(30, 30 - l / 100 * 30),
+					f.appendChild(f.firstChild).style.height = a + "px",
+					p = i,
+					o = 0
+		}
+	}
+};
 
 
 // Add this at the beginning of your main.js
@@ -21,243 +313,589 @@ let currentProgress = 0;
 const progressIncrement = totalProgressSteps / 1000; // Update progress every 10ms
 
 function updateProgressBar() {
-    currentProgress += progressIncrement;
-    progressBar.style.width = currentProgress + '%';
+	currentProgress += progressIncrement;
+	progressBar.style.width = currentProgress + '%';
 
-    if (currentProgress < 100) {
-        requestAnimationFrame(updateProgressBar);
-    } else {
-        // Loading complete, hide the loading screen
-        setTimeout(() => {
-            loadingScreen.style.display = 'none';
-			
-        }, 1000); // Hide after 1 second
-    }
-	
+	if (currentProgress < 100) {
+		requestAnimationFrame(updateProgressBar);
+	} else {
+		// Loading complete, hide the loading screen
+		setTimeout(() => {
+			loadingScreen.style.display = 'none';
+
+		}, 1000); // Hide after 1 second
+	}
+
 }
 
 // Initial call to start the progress animation
 updateProgressBar();
 
 
+// standard global variables
+var container, scene, camera, renderer, controls, stats;
+var keyboard = new THREEx.KeyboardState();
+var clock = new THREE.Clock();
 
-//Some of the global variables
-let p = [0, 0], bool = true, mixer, clock = new THREE.Clock(), controls;
-const world = new CANNON.World({
-	gravity: new CANNON.Vec3(0, -9.81, 0)
-});
-let planeGeometry, planeMesh, planeBody;
+// custom global variables
+var person, house, gltfLoader, loader1, loader2, loader3, loader4, loader5, loader6, loader7, loader8, floor;
 
+var gravity = new THREE.Vector3(0, -9.8, 0);
 
-// Scene and renderer
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x8a8a8a);
-scene.fog = new THREE.Fog(0x8a8a8a, 10, 50);
-const renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(window.devicePixelRatio);
-//renderer.outputColorSpace = THREE.sRGBEncoding;
-renderer.shadowMap.enabled = true;
-document.body.appendChild(renderer.domElement);
+var walls = [];
+var collectWalls = [];
 
-// Container for both camera and person
-const container = new THREE.Group();
-scene.add(container);
-// Camera and controls
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 1000);
-camera.position.set(0, 4, 6.5);
-camera.lookAt(0, 0, 0)
-container.add(camera);
+init();
+animate();
 
-//Light
-const light = new THREE.AmbientLight(0x404040);
-scene.add(light);
-const spotLight = new THREE.SpotLight(0x00ffff);
-spotLight.position.set(100, 1000, 100);
-spotLight.map = new THREE.TextureLoader();
-spotLight.castShadow = true;
-spotLight.shadow.mapSize.width = 1024;
-spotLight.shadow.mapSize.height = 1024;
-spotLight.shadow.camera.near = 500;
-spotLight.shadow.camera.far = 4000;
-spotLight.shadow.camera.fov = 30;
-scene.add(spotLight);
+function init() {
+	// SCENE
+	scene = new THREE.Scene();
+	// CAMERA
+	var SCREEN_WIDTH = window.innerWidth, SCREEN_HEIGHT = window.innerHeight;
+	var VIEW_ANGLE = 45, ASPECT = SCREEN_WIDTH / SCREEN_HEIGHT, NEAR = 1, FAR = 20000;
+	camera = new THREE.PerspectiveCamera(VIEW_ANGLE, ASPECT, NEAR, FAR);
+	scene.add(camera);
 
-// Orbit CONTROLS
-const orbitControls = new OrbitControls(camera, renderer.domElement);
-orbitControls.enableDamping = true
-orbitControls.minDistance = 5
-orbitControls.maxDistance = 15
-orbitControls.enablePan = false
-orbitControls.maxPolarAngle = Math.PI / 2 - 0.05
-orbitControls.update();
+	// RENDERER
+	if (Detector.webgl)
+		renderer = new THREE.WebGLRenderer({ antialias: true });
+	else
+		renderer = new THREE.CanvasRenderer();
+	renderer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+	container = document.getElementById('ThreeJS');
+	container.appendChild(renderer.domElement);
+	// EVENTS
+	THREEx.WindowResize(renderer, camera);
+	THREEx.FullScreen.bindKey({ charCode: 'm'.charCodeAt(0) });
 
-// Cannon physics adding shapes and plane to world
+	// STATS
+	stats = new Stats();
+	stats.domElement.style.position = 'absolute';
+	stats.domElement.style.bottom = '0px';
+	stats.domElement.style.zIndex = 100;
+	container.appendChild(stats.domElement);
+	// LIGHT
+	var light = new THREE.DirectionalLight(0xffffff);
+	light.position.set(0, 250, 0);
+	scene.add(light);
 
-const normalMaterial = new THREE.MeshNormalMaterial()
-const phongMaterial = new THREE.MeshPhongMaterial()
+	//SkyBox
+	var imgPrefix = "bluecloud";
+	var directions = ["_bk", "_dn", "_ft", "_lf", "_rt", "_up"];
+	var imgSuffix = ".jpg";
+	var skyGeometry = new THREE.CubeGeometry(10000, 10000, 10000);
 
-const cubeGeometry = new THREE.BoxGeometry(1, 1, 1)
-const cubeMaterial = new THREE.MeshNormalMaterial()
-const cubeMesh = new THREE.Mesh(cubeGeometry, cubeMaterial)
-cubeMesh.position.x = 1
-cubeMesh.position.y = 20
-cubeMesh.castShadow = true
-scene.add(cubeMesh)
-const cubeShape = new CANNON.Box(new CANNON.Vec3(0.5, 0.5, 0.5))
-const cubeBody = new CANNON.Body({ mass: 2 })
-cubeBody.addShape(cubeShape)
-cubeBody.position.x = cubeMesh.position.x
-cubeBody.position.y = cubeMesh.position.y
-cubeBody.position.z = cubeMesh.position.z
-world.addBody(cubeBody)
-
-cubeBody.angularVelocity.set(0, 10, 0);
-cubeBody.angularDamping = 0.5;
-
-
-const sphereGeometry = new THREE.SphereGeometry()
-const sphereMesh = new THREE.Mesh(sphereGeometry, normalMaterial)
-sphereMesh.position.x = 0
-sphereMesh.position.y = 15
-sphereMesh.castShadow = true
-scene.add(sphereMesh)
-const sphereShape = new CANNON.Sphere(1)
-const sphereBody = new CANNON.Body({ mass: 8 })
-sphereBody.addShape(sphereShape)
-sphereBody.position.x = sphereMesh.position.x
-sphereBody.position.y = sphereMesh.position.y
-sphereBody.position.z = sphereMesh.position.z
-world.addBody(sphereBody)
-
-sphereBody.linearDamping = 0.31;
+	var materialArray = [];
+	for (var i = 0; i < 6; i++)
+		materialArray.push(new THREE.MeshBasicMaterial({
+			map: THREE.ImageUtils.loadTexture(imgPrefix + directions[i] + imgSuffix),
+			side: THREE.BackSide
+		}));
+	var skyMaterial = new THREE.MeshFaceMaterial(materialArray);
+	var skyBox = new THREE.Mesh(skyGeometry, skyMaterial);
+	//scene.add(skyBox);
 
 
 
-//Ground function with image as floor
-createFloor();
 
-function createFloor() {
-	var material = new THREE.MeshPhongMaterial();
-	const texture = new THREE.TextureLoader().load('images/worldColour.5400x2700.jpg');
-	texture.wrapS = THREE.ClampToEdgeWrapping;
-	texture.wrapT = THREE.RepeatWrapping;
+	person = new THREE.Object3D();
+	person.add(camera);
+	camera.position.set(0, 35, 10); // first-person view
+	person.position.set(-5000, 100, 500);
+	person.rotation.y = -Math.PI / 2.0;
+
+	var boundingG = new THREE.CubeGeometry(40, 80, 40);
+
+	boundingG.computeBoundingSphere();
+	var boundingM = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, wireframe: true });
+	var bounding = new THREE.Mesh(boundingG, boundingM);
+	bounding.visible = false;
+	person.add(bounding);
+
+	person.velocity = new THREE.Vector3(0, 0, 0);
+
+	scene.add(person);
+
+	var coordinator = function (z, x, y) {
+		return new THREE.Vector3(50 * x, 50 * y, 50 * z);
+	}
+
+	var floorT = THREE.ImageUtils.loadTexture("grass.jpg");
+	floorT.wrapS = floorT.wrapT = THREE.RepeatWrapping;
+	floorT.repeat.set(10, 10);
+	floor = new THREE.Mesh(new THREE.CubeGeometry(25000, 50, 25000),
+		new THREE.MeshBasicMaterial({
+			map: floorT
+		})
+	);
+	floor.position.set(0, -50, 0);
+	walls.push(floor);
+	scene.add(floor);
 
 
-	material.map = texture;
+	//gltf model
 
-	planeGeometry = new THREE.PlaneGeometry(1000, 1000)
-	planeMesh = new THREE.Mesh(planeGeometry, material)
-	planeMesh.rotateX(-Math.PI / 2)
-	planeMesh.receiveShadow = true
-	scene.add(planeMesh)
 
-	planeBody = new CANNON.Body({
-		type: CANNON.Body.STATIC,
-		shape: new CANNON.Box(new CANNON.Vec3(1000, 1000, 0.1))
-	})
+	gltfLoader = new THREE.GLTFLoader();
+	house;
+	gltfLoader.load('./house/scene.glb', function (gltf) {
+		house = gltf.scene;
+		house.position.x = 3000;
+		house.position.z = 500;
+		house.scale.set(40, 40, 40);
+		house.rotation.y = Math.PI / 2;
+		//house.position.y = -190;
 
-	planeBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0)
-	world.addBody(planeBody)
+		house.traverse(function (node) {
+			if (node.isMesh) {
+				node.receiveShadow = true;
+				walls.push(node);
+
+
+			}
+		});
+		scene.add(house);
+		//walls.push(house);
+		loader1 = new THREE.GLTFLoader();
+		loader1.load('./models/sky/scene.gltf', function (gltf) {
+			const sky = gltf.scene;
+			sky.traverse(function (node) {
+				if (node.isMesh) {
+					node.castShadow = true;
+					node.material.side = THREE.DoubleSide
+					walls.push(node);
+				}
+
+			});
+			sky.scale.set(300, 300, 300);
+
+			scene.add(sky);
+		});
+
+		loader3 = new THREE.GLTFLoader();
+		loader3.load('./models/luis_house_100923_9/scene.gltf', function (gltf) {
+			const treeHigh = gltf.scene;
+			treeHigh.traverse(function (node) {
+				if (node.isMesh) {
+					node.castShadow = true;
+					node.material.side = THREE.DoubleSide
+					walls.push(node);
+				}
+
+			});
+			treeHigh.scale.set(3, 3, 3);
+			treeHigh.position.y = -10;
+			treeHigh.position.x = 3200;
+			treeHigh.position.z = -2000;
+			treeHigh.rotation.y = Math.PI / 2;
+
+			scene.add(treeHigh);
+		});
+
+		loader4 = new THREE.GLTFLoader();
+		loader4.load('./models/luis_house_100923_9/scene.gltf', function (gltf) {
+			const treeHigh = gltf.scene;
+			treeHigh.traverse(function (node) {
+				if (node.isMesh) {
+					node.castShadow = true;
+					node.material.side = THREE.DoubleSide
+					walls.push(node);
+				}
+
+			});
+			treeHigh.scale.set(3, 3, 3);
+			treeHigh.position.y = -10;
+			treeHigh.position.x = 3200;
+			treeHigh.position.z = 4000;
+			treeHigh.rotation.y = Math.PI / 2;
+
+			scene.add(treeHigh);
+		});
+
+		loader5 = new THREE.GLTFLoader();
+		loader5.load('./models/road.glb', function (gltf) {
+			const treeHigh = gltf.scene;
+			treeHigh.traverse(function (node) {
+				if (node.isMesh) {
+					node.castShadow = true;
+					node.material.side = THREE.DoubleSide
+					walls.push(node);
+				}
+
+			});
+			treeHigh.scale.set(2000, 10, 100);
+			treeHigh.position.y = -26;
+
+			treeHigh.position.x = -700;
+
+			treeHigh.rotation.y = Math.PI / 2;
+
+			scene.add(treeHigh);
+		});
+
+		loader6 = new THREE.GLTFLoader();
+		loader6.load('./models/2012_mercedes_c-class.glb', function (gltf) {
+			const treeHigh = gltf.scene;
+			treeHigh.traverse(function (node) {
+				if (node.isMesh) {
+					node.castShadow = true;
+					node.material.side = THREE.DoubleSide
+					walls.push(node);
+				}
+
+			});
+			treeHigh.scale.set(150, 150, 150);
+			treeHigh.position.y = 33;
+
+			treeHigh.position.x = 2300;
+			treeHigh.position.z = -500;
+
+			scene.add(treeHigh);
+		});
+
+		loader7 = new THREE.GLTFLoader();
+		loader7.load('./models/2015_-_porsche_911_carrera_s_rigged__mid-poly/scene.gltf', function (gltf) {
+			const treeHigh = gltf.scene;
+			treeHigh.traverse(function (node) {
+				if (node.isMesh) {
+					node.castShadow = true;
+					node.material.side = THREE.DoubleSide
+
+					walls.push(node);
+				}
+
+			});
+			treeHigh.scale.set(100, 100, 100);
+			treeHigh.position.y = -28;
+			treeHigh.position.x = 3000;
+			treeHigh.position.z = -1600;
+			treeHigh.rotation.y = Math.PI / 2;
+
+			scene.add(treeHigh);
+		});
+
+		loader8 = new THREE.GLTFLoader();
+		loader8.load('./models/2015_-_porsche_911_carrera_s_rigged__mid-poly/scene.gltf', function (gltf) {
+			const treeHigh = gltf.scene;
+			treeHigh.traverse(function (node) {
+				if (node.isMesh) {
+					node.castShadow = true;
+					node.material.side = THREE.DoubleSide
+
+					walls.push(node);
+				}
+
+			});
+			treeHigh.scale.set(100, 100, 100);
+			treeHigh.position.y = -28;
+			treeHigh.position.x = 3000;
+			treeHigh.position.z = 2600;
+			treeHigh.rotation.y = Math.PI / 2;
+
+			scene.add(treeHigh);
+		});
+
+
+
+	});
+
+	var ambientLight = new THREE.AmbientLight(0xaaaaaa);
+	scene.add(ambientLight);
+
+	// Mouse Look (Free Look) controls 
+
+
+	document.addEventListener('click', function (event) {
+		var havePointerLock = 'pointerLockElement' in document ||
+			'mozPointerLockElement' in document ||
+			'webkitPointerLockElement' in document;
+		if (!havePointerLock) return;
+
+		var element = document.body;
+		// Ask the browser to lock the pointer
+		element.requestPointerLock = element.requestPointerLock ||
+			element.mozRequestPointerLock ||
+			element.webkitRequestPointerLock;
+		// Ask the browser to lock the pointer
+		element.requestPointerLock();
+
+		// Hook pointer lock state change events
+		document.addEventListener('pointerlockchange', pointerLockChange, false);
+		document.addEventListener('mozpointerlockchange', pointerLockChange, false);
+		document.addEventListener('webkitpointerlockchange', pointerLockChange, false);
+
+		// Hook mouse move events
+		// document.addEventListener("mousemove", this.moveCallback, false);
+
+	}, false);
+
+
+}
+
+function moveCallback(e) {
+	var movementX = e.movementX || e.mozMovementX || e.webkitMovementX || 0;
+	var movementY = e.movementY || e.mozMovementY || e.webkitMovementY || 0;
+	// store movement amounts; will be processed by update function.
+
+}
+
+function pointerLockChange(event) {
+	var element = document.body;
+	if (document.pointerLockElement === element ||
+		document.mozPointerLockElement === element ||
+		document.webkitPointerLockElement === element) {
+		// Pointer was just locked, enable the mousemove listener
+		document.addEventListener("mousemove", moveCallback, false);
+	}
+	else {
+		// Pointer was just unlocked, disable the mousemove listener
+		document.removeEventListener("mousemove", moveCallback, false);
+	}
+}
+
+function projectXZ(v) { return new THREE.Vector3(v.x, 0, v.z); }
+
+function update() {
+	stats.update();
+	var delta = clock.getDelta(); // seconds since last update
+
+	var moveDistance = 400 * delta; // 200 pixels per second  // should be velocity?
+	var rotateAngle = Math.PI / 4 * delta;   // pi/4 radians (45 degrees) per second
+	var cursorSpeed = 400 * delta;
+
+
+
+
+	if (keyboard.pressed("P")) {
+		camera.position.set(0, 35, 10); // first-person view
+		person.position.set(50, 100, 50);
+		person.rotation.y = -Math.PI / 2.0;
+		person.velocity = new THREE.Vector3(0, 0, 0);
+	}
+
+	// movement controls	
+	var move = { xDist: 0, yAngle: 0, zDist: 0 };
+
+	// check if browser supports gamepad and if a gamepad is plugged in.
+	if (Gamepad.supported && Gamepad.getState(0)) {
+		var pad = Gamepad.getState(0);
+
+		// forwards/backwards
+		if (Math.abs(pad.leftStickY) > 0.15)
+			move.zDist += moveDistance * pad.leftStickY;
+		// strafe left/right
+		if (Math.abs(pad.leftStickX) > 0.15)
+			move.xDist += moveDistance * pad.leftStickX;
+
+		// rotate left/right
+		if (Math.abs(pad.rightStickX) > 0.15)
+			move.yAngle -= rotateAngle * pad.rightStickX;
+		// camera look up/down
+		if (Math.abs(pad.rightStickY) > 0.15)
+			camera.rotateX(-rotateAngle * pad.rightStickY);
+
+		// press "A" to jump
+		if (pad.faceButton0 && (person.velocity.y == 0))
+			person.velocity = new THREE.Vector3(0, 12, 0);
+	}
+
+
+	// keyboard fallback
+
+	// forwards/backwards
+	if (keyboard.pressed("W"))
+		move.zDist -= moveDistance;
+	if (keyboard.pressed("S"))
+		move.zDist += moveDistance;
+	// turn left/right
+	if (keyboard.pressed("Q"))
+		move.yAngle += rotateAngle;
+	if (keyboard.pressed("E"))
+		move.yAngle -= rotateAngle;
+	// left/right (strafe)
+	if (keyboard.pressed("A"))
+		move.xDist -= moveDistance;
+	if (keyboard.pressed("D"))
+		move.xDist += moveDistance;
+
+	// process data from mouse look
+	//  (if inactive, there will be no change)
+
+
+	// up/down (debugging fly)
+	if (keyboard.pressed("T")) {
+		person.velocity = new THREE.Vector3(0, 0, 0);
+		person.translateY(moveDistance);
+	}
+	if (keyboard.pressed("G")) {
+		person.velocity = new THREE.Vector3(0, 0, 0);
+		person.translateY(-moveDistance);
+	}
+
+	person.translateZ(move.zDist);
+	person.rotateY(move.yAngle);
+	person.translateX(move.xDist);
+	person.updateMatrix();
+
+	// look up/down
+	if (keyboard.pressed("3")) // third-person view
+		camera.position.set(0, 50, 250);
+	if (keyboard.pressed("1")) // first-person view
+		camera.position.set(0, 35, 10);
+	if (keyboard.pressed("R"))
+		camera.rotateX(rotateAngle);
+	if (keyboard.pressed("F"))
+		camera.rotateX(-rotateAngle);
+
+	// process data from mouse look
+	//  (if inactive, there will be no change)
+
+	// limit camera to +/- 45 degrees (0.7071 radians) or +/- 60 degrees (1.04 radians)
+	camera.rotation.x = THREE.Math.clamp(camera.rotation.x, -1.04, 1.04);
+	// pressing both buttons moves look angle to horizon
+	if (keyboard.pressed("R") && keyboard.pressed("F"))
+		camera.rotateX(-6 * camera.rotation.x * rotateAngle);
+
+	// collision detection!
+	if (collision(walls)) {
+		person.translateX(-move.xDist);
+		person.rotateY(-move.yAngle);
+		person.translateZ(-move.zDist);
+		person.updateMatrix();
+
+		if (collision(walls))
+			console.log("Something's wrong with collision...");
+
+	}
+
+	// TODO: make sure there is no double-jump glitch
+	//	(e.g. hold down space sometimes results in double-jump)
+	if (keyboard.pressed("space") && (person.velocity.y == 0))
+		person.velocity = new THREE.Vector3(0, 12, 0);
+
+	person.velocity.add(gravity.clone().multiplyScalar(delta));
+	person.translateY(person.velocity.y);
+	person.updateMatrix();
+	if (collision(walls)) {
+		person.translateY(-person.velocity.y);
+		person.updateMatrix();
+		person.velocity = new THREE.Vector3(0, 0, 0);
+	}
+
+}
+// returns true on intersection
+function collision(wallArray) {
+	// send rays from center of person to each vertex in bounding geometry
+	for (var vertexIndex = 0; vertexIndex < person.children[1].geometry.vertices.length; vertexIndex++) {
+		var localVertex = person.children[1].geometry.vertices[vertexIndex].clone();
+		var globalVertex = localVertex.applyMatrix4(person.matrix);
+		var directionVector = globalVertex.sub(person.position);
+
+		var ray = new THREE.Raycaster(person.position, directionVector.clone().normalize());
+		var collisionResults = ray.intersectObjects(wallArray);
+		if (collisionResults.length > 0 && collisionResults[0].distance < directionVector.length())
+			return true;
+
+	}
+	return false;
 }
 
 
-//Model Loader
-const loader = new GLTFLoader();
-const loader1 = new GLTFLoader();
-const loader2 = new GLTFLoader();
-const loader3 = new GLTFLoader();
-const loader4 = new GLTFLoader();
-
-const personPhysMat = new CANNON.Material();
 
 
-let person, tree, road, roadBody = new CANNON.Body({ mass: 0 });
+const textEditor = document.getElementById('textEditor');
+var textMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
 
-let treeBody = new CANNON.Body({
-	mass: 10,
+var textGeometry = new TextGeometry("New Text", {
+
+	size: 0.5,
+	height: 0.1,
+});
+var textMesh = new THREE.Mesh(textGeometry, textMaterial);
+textEditor.addEventListener('input', function () {
+	const newText = textEditor.value;
+	textMesh.geometry = new TextGeometry(newText, /* your options */);
+	// You may need to update the position, material, etc., depending on your use case.
+});
+const collisionButton = document.getElementById('collisionButton'); // Create a button element
+
+collisionButton.addEventListener('click', function () {
+	textEditor.style.display = 'block';
 });
 
-const personContactMat = new CANNON.ContactMaterial(
-	personPhysMat,
-	{ restitution: 0.9 }
-);
+
+const submitButton = document.createElement('button');
+submitButton.id = 'submitButton';
+submitButton.textContent = 'Submit';
+
+// Append the button to the document body
+document.body.appendChild(submitButton);
+submitButton.addEventListener('click', function() {
+	const enteredText = textEditor.value;
+	console.log('Entered text:', enteredText);
+  
+	// You can use the entered text in your JavaScript logic here.
+  });
 
 
 
 
-let personGeometry = new THREE.SphereGeometry(), personMesh, personBody;
+function collisionRemove(wallArray) {
+	// send rays from center of person to each vertex in bounding geometry
 
-//Add soldier model
-loader.load('models/Soldier.glb', function (gltf) {
-	person = gltf.scene;
-	person.traverse(function (node) {
-		if (node.isMesh) { node.castShadow = true; }
-	});
+	for (var vertexIndex = 0; vertexIndex < person.children[1].geometry.vertices.length; vertexIndex++) {
+		var localVertex = person.children[1].geometry.vertices[vertexIndex].clone();
+		var globalVertex = localVertex.applyMatrix4(person.matrix);
+		var directionVector = globalVertex.sub(person.position);
 
-	//add physis to character
-	personBody = new CANNON.Body({
-		mass: 0,
-		shape: new CANNON.Sphere(0.9),
-		position: new CANNON.Vec3(person.position),
-	})
-	world.addBody(personBody);
-
-	//mixer for animating model
-	mixer = new THREE.AnimationMixer(person);
-	mixer.clipAction(THREE.AnimationUtils.subclip(gltf.animations[0], 'idle', 23, 44)).setDuration(0.7).play();
-	mixer.clipAction(THREE.AnimationUtils.subclip(gltf.animations[1], 'walk', 0, 22)).setDuration(0.7).play();
-	mixer._actions[1].enabled = true;
-	mixer._actions[0].enabled = false;
-	scene.add(person);
-},
-);
+		var ray = new THREE.Raycaster(person.position, directionVector.clone().normalize());
+		var collisionResults = ray.intersectObjects(wallArray);
+		if (collisionResults.length > 0 && collisionResults[0].distance < directionVector.length())
+			return true;
+		scene.remove(collectible);
+	}
+	return false;
+}
 
 
-loader2.load('models/tree 2.glb', function (gltf2) {
-	tree = gltf2.scene;
-	tree.position.set(0, 0, -20);
-	
-	//add physis to character
-	const treePhysMat = new CANNON.Material();
-	treeBody = new CANNON.Body({
-		mass: 2,
-		shape: new CANNON.Sphere(1.6),
-		position: new CANNON.Vec3(tree.position),
-		material: treePhysMat
-	});
-	world.addBody(treeBody);
-	scene.add(tree);
-},
-);
 
 // Score and collectible count
+const normalMaterial = new THREE.MeshNormalMaterial()
 let score = 0;
-let collectibleCount = 5; // Change this value based on the number of collectibles in your scene
+let collectibleCount = 2; // Change this value based on the number of collectibles in your scene
+var collectible;
 
 // Function to create collectible cubes
 function createCollectible(x, y, z) {
 	const collectibleGeometry = new THREE.BoxGeometry(1, 1, 1);
-	const collectible = new THREE.Mesh(collectibleGeometry, normalMaterial);
+	collectible = new THREE.Mesh(collectibleGeometry, normalMaterial);
 	collectible.position.set(x, y, z);
+	collectible.scale.set(50, 50, 50)
 	scene.add(collectible);
+	collectWalls.push(collectible);
+
 }
 
 // Create collectible cubes at random positions
 for (let i = 0; i < collectibleCount; i++) {
-	const x = Math.random() * 20 - 10; // Random x position between -10 and 10
+	const x = Math.random() * 100 - 10; // Random x position between -10 and 10
 	const y = 0.5; // Set to half of the player's height
-	const z = Math.random() * 20 - 10; // Random z position between -10 and 10
+	const z = Math.random() * 100 - 10; // Random z position between -10 and 10
 	createCollectible(x, y, z);
+
 }
 
 // Function to handle interactions with collectibles
 function handleCollectibleInteraction() {
 	score++;
 	collectibleCount--;
+
 	// Update UI to display the current score and collectible count
 	console.log(`Score: ${score}`);
 	console.log(`Collectibles left: ${collectibleCount}`);
+	scene.remove(collectible);
+	//collectWalls.pop(collectible);
 }
 
 
@@ -266,11 +904,9 @@ function handleCollectibleInteraction() {
 function checkCheckpoint() {
 	const checkpointX = 8; // Set the x position of the checkpoint area
 	const checkpointZ = 8; // Set the z position of the checkpoint area
-	const distance = person.position.distanceTo(new THREE.Vector3(checkpointX, person.position.y, checkpointZ));
-	if (distance < 2) {
-		// The player has reached the checkpoint
-		// Implement logic for handling the completion of the challenge
+	if (collisionRemove(collectWalls)) {
 		console.log('Checkpoint reached! Challenge completed!');
+
 	}
 }
 
@@ -278,135 +914,29 @@ function checkCheckpoint() {
 function checkCollectibleInteractions() {
 	for (let i = 0; i < scene.children.length; i++) {
 		const object = scene.children[i];
-		if (object instanceof THREE.Mesh && object !== person && object != planeMesh && object != sphereMesh && object != cubeMesh) {
-			const distance = person.position.distanceTo(object.position);
-			if (distance < 1) {
+		if (object instanceof THREE.Mesh && object != person && object != house && object != loader1 && object != loader2
+			&& object != loader3 && object != loader4 && object != loader5 && object != loader6 && object != loader7 && object != loader8
+			&& object != floor) {
+			if (collisionRemove(collectWalls)) {
+				// Set the position
+				collisionButton.click();
 				scene.remove(object);
 				handleCollectibleInteraction();
 			}
+
 		}
 	}
 }
 
-
-//keys for character control
-let fwd, bkd, rgt, lft, spc, dwn = false, movKey = false;
-
-window.addEventListener('keydown', function (e) {
-	switch (e.code) {
-		case 'KeyW': fwd = true; break;
-		case 'KeyS': bkd = true; break;
-		case 'KeyD': rgt = true; break;
-		case 'KeyA': lft = true; break;
-		//case 'Space': spc = true; break;
-	}
-
-});
-window.addEventListener('keyup', function (e) {
-	dwn = false;
-	movKey = false;
-	p = [0, 0];
-	mixer._actions[0].enabled = true;
-	mixer._actions[1].enabled = false;
-	switch (e.code) {
-		case 'KeyW': fwd = false; break;
-		case 'KeyS': bkd = false; break;
-		case 'KeyD': rgt = false; break;
-		case 'KeyA': lft = false; break;
-		//case 'Space': spc = false; break;
-	}
-});
-function updateKey() {
-	if (!dwn) {
-		if (fwd) { dwn = true; person.rotation.y = 0 * Math.PI / 180; p = [0, -0.05]; movKey = true; }
-		if (bkd) { dwn = true; person.rotation.y = 180 * Math.PI / 180; p = [0, 0.05]; movKey = true; }
-		if (lft) { dwn = true; person.rotation.y = 90 * Math.PI / 180; p = [-0.05, 0]; movKey = true; }
-		if (rgt) { dwn = true; person.rotation.y = -90 * Math.PI / 180; p = [0.05, 0]; movKey = true; }
-
-		if (movKey) {
-			mixer._actions[0].enabled = false;
-			mixer._actions[1].enabled = true;
-		}
-	}
+function animate() {
+	requestAnimationFrame(animate);
+	render();
+	update();
+	checkCheckpoint();
+	checkCollectibleInteractions();
 }
 
-//Light 2
-function light1() {
-	scene.add(new THREE.AmbientLight(0xffffff, 0.7))
-
-	const dirLight = new THREE.DirectionalLight(0xffffff, 1)
-	dirLight.position.set(- 60, 100, - 10);
-	dirLight.castShadow = true;
-	dirLight.shadow.camera.top = 50;
-	dirLight.shadow.camera.bottom = - 50;
-	dirLight.shadow.camera.left = - 50;
-	dirLight.shadow.camera.right = 50;
-	dirLight.shadow.camera.near = 0.1;
-	dirLight.shadow.camera.far = 200;
-	dirLight.shadow.mapSize.width = 4096;
-	dirLight.shadow.mapSize.height = 4096;
-	scene.add(dirLight);
-	//scene.add( new THREE.CameraHelper(dirLight.shadow.camera))
-}
-
-light1();
-
-
-//render or animate
 function render() {
 
-	//Collectable items
-	checkCollectibleInteractions();
-	checkCheckpoint();
-
-	//character controls and camera movement
-	if (person) {
-		updateKey();
-		person.position.x += p[0]; person.position.z += p[1];
-		camera.lookAt(person.position);
-		camera.position.x = person.position.x;
-		camera.position.y = 4;
-		camera.position.z = person.position.z + 6;
-	}
-	//Animation update for player standing type
-	const clockDelta = clock.getDelta();
-	if (mixer) { mixer.update(clockDelta); }
-
-
-	//World meaning physics added to models,objects and plane
-	world.step(1 / 60); //Update phyics by this step
-
-	planeMesh.position.copy(planeBody.position);
-	planeBody.quaternion.copy(planeBody.quaternion);
-
-	cubeMesh.position.set(
-		cubeBody.position.x,
-		cubeBody.position.y,
-		cubeBody.position.z
-	)
-	cubeMesh.quaternion.set(
-		cubeBody.quaternion.x,
-		cubeBody.quaternion.y,
-		cubeBody.quaternion.z,
-		cubeBody.quaternion.w
-	)
-	sphereMesh.position.set(
-		sphereBody.position.x,
-		sphereBody.position.y,
-		sphereBody.position.z
-	)
-	sphereMesh.quaternion.set(
-		sphereBody.quaternion.x,
-		sphereBody.quaternion.y,
-		sphereBody.quaternion.z,
-		sphereBody.quaternion.w
-	)
-
-	personBody.position.copy(person.position);
-	personBody.quaternion.copy(person.quaternion);
-
 	renderer.render(scene, camera);
-	renderer.setAnimationLoop(render);
 }
-renderer.setAnimationLoop(render);
-

@@ -102,7 +102,8 @@ button:focus-visible {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.8); /* Semi-transparent background color */
+  background-color: rgba(0, 0, 0, 0.8);
+  /* Semi-transparent background color */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -110,10 +111,14 @@ button:focus-visible {
 }
 
 #loading-background {
-  background-image: url('./undercover.png'); /* Specify the path to your background image */
-  background-size: cover; /* Fit the image perfectly */
-  background-repeat: no-repeat; /* Prevent repeating the image */
-  background-position: center; /* Center the image within the element */
+  background-image: url('./undercover.png');
+  /* Specify the path to your background image */
+  background-size: cover;
+  /* Fit the image perfectly */
+  background-repeat: no-repeat;
+  /* Prevent repeating the image */
+  background-position: center;
+  /* Center the image within the element */
   width: 100%;
   height: 100%;
   position: absolute;
@@ -123,30 +128,59 @@ button:focus-visible {
 
 #loading-content {
   text-align: center;
-  color: #ffffff; /* Text color */
-  z-index: 1; /* Ensure it's above the background */
+  color: #ffffff;
+  /* Text color */
+  z-index: 1;
+  /* Ensure it's above the background */
 }
 
 #loading-progress {
-  width: 80%; /* Adjust the width of the progress container */
-  margin: 20px auto; /* Center the progress bar horizontally */
-  background-color: rgba(255, 255, 255, 0.2); /* Progress container background */
-  border-radius: 4px; /* Rounded corners */
-  height: 20px; /* Height of the progress container */
+  width: 80%;
+  /* Adjust the width of the progress container */
+  margin: 20px auto;
+  /* Center the progress bar horizontally */
+  background-color: rgba(255, 255, 255, 0.2);
+  /* Progress container background */
+  border-radius: 4px;
+  /* Rounded corners */
+  height: 20px;
+  /* Height of the progress container */
 }
 
 #loading-progress-bar {
-  height: 100%; /* Height of the progress bar */
-  width: 0; /* Initial width is 0% */
-  background-color: #007bff; /* Color of the progress bar */
-  border-radius: 4px; /* Rounded corners */
+  height: 100%;
+  /* Height of the progress bar */
+  width: 0;
+  /* Initial width is 0% */
+  background-color: #007bff;
+  /* Color of the progress bar */
+  border-radius: 4px;
+  /* Rounded corners */
+}
+
+#textEditor {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 1;
+  /* Ensure it's on top of the canvas */
+  display: none;
+}
+
+#aboveText {
+  font-size: 14px;
+  top: 10px;
+  left: 10px;
+  color: #333;
+  margin-bottom: 10px;
+  /* Adjust the spacing as needed */
 }
 
 #inventory {
   position: fixed;
   background-color: rgba(110, 127, 128, 0.12);
-  height: 90vh;
-  width: 9%;
+  height: 550px;
+  width: 120px;
   margin: 25px;
   padding: 10px;
   overflow-x: clip;
@@ -191,4 +225,10 @@ button:focus-visible {
 
 #inventory::-webkit-scrollbar-button {
   display: none;
+}
+
+#gameover {
+  position: fixed;
+  font-size: 200px;
+  color: #42b14d;
 }

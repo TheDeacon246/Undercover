@@ -66,6 +66,7 @@ const personContactMat = new CANNON.ContactMaterial(
 );
 
 let personBody;
+const startPos = new THREE.Vector3(10, 0,-5);
 
 // Loading Models  ----------------------------------------------------------------------------------------------------------------------------
 const loader = new GLTFLoader(); //Model Loader
@@ -75,10 +76,10 @@ let mixer, mixer2; //animate animated objects
 //Add soldier model
 loader.load('models/Soldier.glb', function (gltf) {
 	person = gltf.scene;
-	person.position.y = -3
 	person.traverse(function (node) {
 		if (node.isMesh) { node.castShadow = true; }
 	});
+	person.position.copy(startPos);
 
 	//add physics to character
 	personBody = new CANNON.Body({
@@ -108,6 +109,7 @@ loader.load('models/house/scene.glb',
 			}
 		});
 		mesh.position.set(0, 0, 0);
+		mesh.scale.set(0.9, 0.9, 0.9);
 		mesh.position.y = -2.6;
 	
 		scene.add(mesh);
@@ -124,6 +126,33 @@ loader.load('models/house/scene.glb',
     }
 );
 
+//cupboard model
+// loader.load('models/cupboard/scene.gltf', 
+// 	(gltf) => {
+// 		mesh = gltf.scene;
+// 		mesh.traverse(function (node) { //house casts shadow
+// 			if (node.isMesh) { 
+// 				node.castShadow = true; 
+// 			}
+// 		});
+// 		mesh.position.set(0, 0, 0);
+// 		mesh.scale.set(0.005, 0.005, 0.005);
+// 		mesh.position.set(-4.7, 0, -6.5);
+	
+// 		scene.add(mesh);
+// 	},
+
+// 	(xhr) => {
+//         // Loading progress callback (optional)
+//         console.log((xhr.loaded / xhr.total) * 100 + '% loaded');
+//     },
+
+//     (error) => {
+//         // Error callback
+//         console.error('Error loading GLTF model:', error);
+//     }
+// );
+
 //allow safe to be moved
 var safe = new THREE.Group();
 
@@ -133,7 +162,7 @@ loader.load('models/safe/scene.gltf',
 		mesh = gltf.scene;
 		mesh.position.set(0,0,0);
 		mesh.scale.set(0.01,0.01,0.01)
-		mesh.position.set(0,1,0);
+		mesh.position.set(-4.7,1,-6.5);
 
 		safe.add(mesh);
 	},
@@ -150,7 +179,6 @@ loader.load('models/safe/scene.gltf',
 );
 
 scene.add(safe)
-safe.position.x = 4
 
 // Collectibles and Inventory  -----------------------------------------------------------------------------------------------------
 
@@ -269,10 +297,10 @@ window.addEventListener('keyup', function (e) {
 });
 function updateKey() {
 	if (!dwn) {	
-		if (fwd) { console.log('w'); dwn = true; person.rotation.y = 0 * Math.PI / 180; p = [0, -0.5]; movKey = true;}
-		if (bkd) { console.log('s'); dwn = true; person.rotation.y = 180 * Math.PI / 180; p = [0, 0.5]; movKey = true; }
-		if (lft) { console.log('a'); dwn = true; person.rotation.y = 90 * Math.PI / 180; p = [-0.5, 0]; movKey = true; }
-		if (rgt) { console.log('d'); dwn = true; person.rotation.y = -90 * Math.PI / 180; p = [0.5, 0]; movKey = true; }
+		if (fwd) { console.log('w'); dwn = true; person.rotation.y = 0 * Math.PI / 180; p = [0, -0.1]; movKey = true;}
+		if (bkd) { console.log('s'); dwn = true; person.rotation.y = 180 * Math.PI / 180; p = [0, 0.1]; movKey = true; }
+		if (lft) { console.log('a'); dwn = true; person.rotation.y = 90 * Math.PI / 180; p = [-0.1, 0]; movKey = true; }
+		if (rgt) { console.log('d'); dwn = true; person.rotation.y = -90 * Math.PI / 180; p = [0.1, 0]; movKey = true; }
 		//if ( spc ) {console.log('space'); dwn=true; charSwitch()}
 		if (movKey) {
 			mixer._actions[0].enabled = false;
@@ -310,14 +338,14 @@ class Surveilence {
         this.camera = new GLTFLoader().load('models/camera/scene.gltf',
 			(gltf) => {
 				var m = gltf.scene;
-				m.position.set(0, 2.58, -0.8)
+				m.position.set(2.3, 1.75, -3.5)
 
 				// Create an AnimationMixer, and get the list of AnimationClip instances
 				mixer2 = new THREE.AnimationMixer( m );
 				const clips = m.animations;
 
 				// Update the mixer on each frame
-				mixer2.clipAction(gltf.animations[1]).setDuration(10).play();
+				// mixer2.clipAction(gltf.animations[1]).setDuration(10).play();
 				mixer2.clipAction(gltf.animations[0]).setDuration(7).play();
 
 				scene.add(m);
@@ -325,32 +353,35 @@ class Surveilence {
     }
 }
 
-s.add(new Surveilence())
+new Surveilence();
 
 //camera light
-var view = new THREE.SpotLight(0xffee00, 3, 5, Math.PI/6, 1, 0)
+var view = new THREE.SpotLight(0xffee00, 30, 5, Math.PI/12, 1, 0)
 view.position.set(0.1, 3, 0)
 
 s.add(view)
 s.add(view.target)
 
-//light cone
-const geometry = new THREE.ConeGeometry( 2, 4); 
-const material = new THREE.MeshBasicMaterial( {color: 0xffff00} );
-const cone = new THREE.Mesh(geometry, material ); 
-cone.material.transparent = true
-cone.material.opacity = 0.04
+// //light cone
+// const geometry = new THREE.ConeGeometry( 2, 4); 
+// const material = new THREE.MeshBasicMaterial( {color: 0xffff00} );
+// const cone = new THREE.Mesh(geometry, material ); 
+// cone.material.transparent = true
+// cone.material.opacity = 0.4
 
-//angling the cone
-cone.position.set(0.67, 1.05, 0)
-cone.rotation.set(0, 0, 0.27)
-s.add( cone );
+// //angling the cone
+// cone.rotation.set(0, -1, 0.85)
+// cone.position.set(1.5, 0.8, -2)
+// s.add( cone );
 
 s.rotation.y = 0
-s.position.set(0, 0, 0)
-view.target.position.x = 1
+s.position.set(1.3, 0, -3.5)
+view.target.position.set(1,0,1);
+const radius = Math.sqrt(Math.pow(1.3 - 1, 2) + Math.pow(3.5 - 1,2));
 
 scene.add(s)
+
+createCollectible(1.5, 0.2, -2.2, "key");
 
 //rotation variables
 var r = 0.01
@@ -359,6 +390,8 @@ var t = new THREE.Vector3().copy(view.target.position); //keeps track of light f
 //render variables
 let clock = new THREE.Clock();
 let p = [0, 0]; //update person position
+
+let zoomed = 0;
 
 function zoomIn() {
 	camera.fov *= 0.3;
@@ -370,9 +403,15 @@ function zoomOut() {
 	camera.updateProjectionMatrix();
 }
 
+function restart() {
+	//back to initiate position
+	person.position.copy(startPos);
+}
+
+let stopGame = 0;
+
 //render or animate
 function render() {
-
 	//Collectable items
     checkCollectibleInteractions();
 
@@ -385,8 +424,8 @@ function render() {
 		var pos = new THREE.Vector3().copy(person.position);
 		camera.lookAt(person.position);
 		camera.position.x = person.position.x;
-		camera.position.y = 10;
-		camera.position.z = 0;
+		camera.position.y = 2;
+		camera.position.z = person.position.z + 4; 
 		// camera.lookAt(pos.add(new THREE.Vector3(0, 2, 0)));
 		// camera.position.x = person.position.x;
 		// camera.position.y = person.position.y + 2;
@@ -410,22 +449,47 @@ function render() {
 	}
 
 	//move light across the floor
-	if (Math.abs(s.rotation.y) > Math.PI/4)
+	if (Math.abs(s.rotation.y) > Math.PI/6)
 		r *= -1;
 	s.rotation.y += r
-	t.copy(new THREE.Vector3(Math.cos(s.rotation.y), 0, Math.sin(-s.rotation.y))); //update t 
+	t.copy(new THREE.Vector3(2.3, 0, - 3.5)); //update t 
 
 	//detect if person is in the camera view
 	if (person) {	
-		let distance = person.position.distanceTo(safe.position)
-		if(distance < 0.5)
+		if(person.position.distanceTo(t) < 2.5)
 		{
-			//restart level
+			restart();
+		}
+		// console.log(person.position);
+
+		// if (person.position.distanceTo(new THREE.Vector3(-4.7,0,-6.5)) < 0.5 && !zoomed) {
+		// 	zoomIn();
+		// 	zoomed = 1;
+		// }
+
+		if (person.position.distanceTo(new THREE.Vector3(-4.7,0,-6.5)) < 0.5 && selectedItem == "key") {
+			removeFromInventory("key");
+			stopGame = 1;
 		}
 	}
-
 	renderer.render(scene, camera);
-	renderer.setAnimationLoop(render);
+	if (stopGame == 1){
+		endGame();
+	}
 }
+
 renderer.setAnimationLoop(render);
+
+//stops game
+function endGame(){
+	renderer.setAnimationLoop(null);
+	document.getElementById("inventory").style.opacity = 0
+	scene.visible = false;
+	scene.background = new THREE.Color(0xffffff);
+
+	const element = document.createElement('div')
+	element.innerHTML = "LEVEL \nCOMPLETE :)"
+	element.id = "gameover"
+	document.body.appendChild(element)
+}
 
