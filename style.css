@@ -142,23 +142,18 @@ button:focus-visible {
   border-radius: 4px; /* Rounded corners */
 }
 
-#inventory {
-  position: fixed;
-  background-color: rgba(110, 127, 128, 0.12);
-  height: 90vh;
-  width: 8%;
-  margin: 25px;
-  padding: 10px;
-  overflow: clip;
+#textEditor {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 1; /* Ensure it's on top of the canvas */
+  display: none;
 }
 
-.inv-item {
-  display: block;
-  margin-left: auto;
-  margin-right: auto;
-  margin-bottom: 10px;
-  height: 15vh;
-  width: 15vh;
-  opacity: 1;
-  border: 1px solid #213547;
+#aboveText {
+  font-size: 14px;
+  top: 10px;
+  left: 10px;
+  color: #333;
+  margin-bottom: 10px; /* Adjust the spacing as needed */
 }
