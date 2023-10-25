@@ -3,6 +3,58 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import * as CANNON from 'cannon-es';
 
+//global variables --------------------------------------------------------------------------------------------------------------------------------------------
+const audioListener = new THREE.AudioListener();
+const audioLoader = new THREE.AudioLoader();
+
+//functions ----------------------------------------------------------------------------------------------------------------------------------------------------
+function loadSoundEffect(name) {
+	const sound = new THREE.Audio(audioListener);
+
+	audioLoader.load(`sounds/sound-effects/${name}.mp3`, function(buffer){
+		sound.setBuffer(buffer);
+		sound.setLoop(false);
+		sound.setVolume(1.0);
+		}
+	);
+
+	return sound;
+}
+
+function loadModel(name, positionVec, scaleVec) {
+	const loader = new GLTFLoader(); //Model Loader
+	var mesh; //model mesh
+	let mixer, mixer2; //animate animated objects
+
+	loader.load(`models/${name}/scene.gltf`, 
+		(gltf) => {
+			mesh = gltf.scene;
+			mesh.traverse(function (node) { //house casts shadow
+				if (node.isMesh) { 
+					node.castShadow = true; 
+					node.material.depthWrite = true;
+					node.material.roughness = 0;
+				}
+			});
+			mesh.position.set(0, 0, 0);
+			mesh.scale.copy(scaleVec);
+			mesh.position.copy(positionVec);
+
+			scene.add(mesh);
+		},
+
+		(xhr) => {
+	        // Loading progress callback (optional)
+	        console.log((xhr.loaded / xhr.total) * 100 + '% loaded');
+	    },
+
+	    (error) => {
+	        // Error callback
+	        console.error('Error loading GLTF model:', error);
+	    }
+	);
+}
+
 // Scene, world and lighting -----------------------------------------------------------------------------------------------------------------------------------
 //creating 3d physics world
 const world = new CANNON.World({
@@ -26,6 +78,7 @@ scene.add(container);
 
 // Camera and controls
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1000);
+camera.add(audioListener);
 container.add(camera);
 
 //Light for outside "sun"
@@ -33,7 +86,7 @@ const sun = new THREE.AmbientLight(0x404040);
 scene.add(sun);
 
 // Floor -----------------------------------------------------------------------------------------------------------------------------------
-//createFloor();
+
 
 let planeGeometry, planeMesh, planeBody; //floor variables
 function createFloor() {
@@ -50,10 +103,12 @@ function createFloor() {
 		shape: new CANNON.Box(new CANNON.Vec3(5, 5, 0.1))
 	})
 
-	planeBody.position.y = -5
+	// planeBody.position.y = -5
 	planeBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0)
 	world.addBody(planeBody)
 }
+
+// createFloor();
 
 //person physics
 const personPhysMat = new CANNON.Material();
@@ -66,7 +121,7 @@ const personContactMat = new CANNON.ContactMaterial(
 );
 
 let personBody;
-const startPos = new THREE.Vector3(10, 0,-5);
+const startPos = new THREE.Vector3(4, 0,5);
 
 // Loading Models  ----------------------------------------------------------------------------------------------------------------------------
 const loader = new GLTFLoader(); //Model Loader
@@ -110,7 +165,7 @@ loader.load('models/house/scene.glb',
 		});
 		mesh.position.set(0, 0, 0);
 		mesh.scale.set(0.9, 0.9, 0.9);
-		mesh.position.y = -2.6;
+		mesh.position.y = -3;
 	
 		scene.add(mesh);
 	},
@@ -362,26 +417,32 @@ view.position.set(0.1, 3, 0)
 s.add(view)
 s.add(view.target)
 
-// //light cone
-// const geometry = new THREE.ConeGeometry( 2, 4); 
-// const material = new THREE.MeshBasicMaterial( {color: 0xffff00} );
-// const cone = new THREE.Mesh(geometry, material ); 
-// cone.material.transparent = true
-// cone.material.opacity = 0.4
 
-// //angling the cone
-// cone.rotation.set(0, -1, 0.85)
-// cone.position.set(1.5, 0.8, -2)
-// s.add( cone );
 
-s.rotation.y = 0
-s.position.set(1.3, 0, -3.5)
-view.target.position.set(1,0,1);
+
 const radius = Math.sqrt(Math.pow(1.3 - 1, 2) + Math.pow(3.5 - 1,2));
 
-scene.add(s)
+//light cone
+const geom = new THREE.ConeGeometry( 1.9, 4); 
+const matrial = new THREE.MeshBasicMaterial( {color: 0xffff00} );
+const cone = new THREE.Mesh(geom, matrial ); 
+cone.material.transparent = true;
+cone.material.opacity = 0.5;
 
-createCollectible(1.5, 0.2, -2.2, "key");
+//angling the cone
+cone.rotation.set(0, 0, 0.4);
+cone.position.set(1.9, 0, 0);
+s.add( cone );
+
+s.rotation.y = 0;
+s.position.set(2.3, 0, -3.5);
+view.target.position.x = 2;
+var h = new THREE.SpotLightHelper(view);
+
+scene.add(h);
+scene.add(s);
+
+createCollectible(1.5, 0.2,-2.2, "key");
 
 //rotation variables
 var r = 0.01
@@ -406,9 +467,23 @@ function zoomOut() {
 function restart() {
 	//back to initiate position
 	person.position.copy(startPos);
+	const sound = loadSoundEffect("restart")
+	sound.play();
 }
 
+loadModel("fridge", new THREE.Vector3(15, 0.8, -3), new THREE.Vector3(1, 1, 1));
+let l = new THREE.PointLight(0xffffff, 10);
+l.position.set(14, 1.5, -3);
+var help = new THREE.PointLightHelper(l);
+scene.add(l);
+scene.add(help);
+
 let stopGame = 0;
+const geometry = new THREE.SphereGeometry( 0.1, 32, 16 ); 
+const material = new THREE.MeshBasicMaterial( { color: 0xff0000 } ); 
+const sphere = new THREE.Mesh( geometry, material ); scene.add( sphere );
+sphere.position.set(0,0,0);
+scene.add(sphere);
 
 //render or animate
 function render() {
@@ -452,13 +527,15 @@ function render() {
 	if (Math.abs(s.rotation.y) > Math.PI/6)
 		r *= -1;
 	s.rotation.y += r
-	t.copy(new THREE.Vector3(2.3, 0, - 3.5)); //update t 
+	t = new THREE.Vector3(2 * Math.cos(s.rotation.y) + s.position.x, 0, 2 * Math.sin(-s.rotation.y) + s.position.z) //update t 
+	sphere.position.copy(t);
+
 
 	//detect if person is in the camera view
 	if (person) {	
-		if(person.position.distanceTo(t) < 0.5)
+		if(person.position.distanceTo(t) < 1)
 		{
-			restart();
+			// restart();
 		}
 		// console.log(person.position);
 
