@@ -465,7 +465,7 @@ function init() {
 
 		player.position.set(-5000, 0, 500);
 		player.scale.set(60, 60, 60);
-
+		//player.rotation.set()
 
 
 		//mixer for animating model
@@ -475,7 +475,8 @@ function init() {
 		mixer._actions[1].enabled = false;
 		mixer._actions[0].enabled = true;
 		//scene.add(player);
-		scene.add(player);
+		//scene.add(player);
+
 	},
 	);
 
@@ -709,7 +710,7 @@ function update() {
 
 	var moveDistance = 400 * delta; // 200 pixels per second  // should be velocity?
 	var rotateAngle = Math.PI / 4 * delta;   // pi/4 radians (45 degrees) per second
-	
+
 
 
 
@@ -730,46 +731,89 @@ function update() {
 
 	//  (if inactive, there will be no change)
 	if (keyboard.pressed("W")) {
-		move.zDist -= moveDistance;
-		player.rotation.y = -90 * Math.PI / 180;
-		//player.rotation.y = 0 * Math.PI / 180;
-		player.position.x += moveDistance;
-		//player.position.z -= moveDistance;
+		move.zDist -= moveDistance * 2;
 		movKey = true;
+		if (player) {
+			player.position.copy(person.position).add(new THREE.Vector3(10,0,0))
+			if(person.rotation.x == Math.PI || person.rotation.x == -Math.PI){
+				player.rotation.y = -person.rotation.y + Math.PI;
+				
+			}
+			else{
+				player.rotation.y = person.rotation.y;
+			}
+		}
 	}
 	if (keyboard.pressed("S")) {
-		move.zDist += moveDistance;
-		player.rotation.y = 90 * Math.PI / 180;
-		//player.rotation.y = 180 * Math.PI / 180;
-		player.position.x -= moveDistance;
-		//player.position.z += moveDistance;
+		move.zDist += moveDistance * 2;
 		movKey = true;
+		if (player) {
+			player.position.copy(person.position).add(new THREE.Vector3(10,0,0))
+			if(person.rotation.x == Math.PI || person.rotation.x == -Math.PI){
+				player.rotation.y = -person.rotation.y + Math.PI;
+				
+			}
+			else{
+				player.rotation.y = person.rotation.y;
+			}
+		}
 	}
 	// turn left/right
 	if (keyboard.pressed("Q")) {
 		move.yAngle += rotateAngle;
-		player.rotation.y -= rotateAngle;
+		if (player) {
+			player.position.copy(person.position).add(new THREE.Vector3(10,0,0))
+			if(person.rotation.x == Math.PI || person.rotation.x == -Math.PI){
+				player.rotation.y = -person.rotation.y + Math.PI;
+				
+			}
+			else{
+				player.rotation.y = person.rotation.y;
+			}
+		}
+		movKey = true;
 	}
 	if (keyboard.pressed("E")) {
-		move.yAngle -= rotateAngle;
-		player.rotation.y += rotateAngle;
-		
+		move.yAngle -= rotateAngle ;
+		if (player) {
+			player.position.copy(person.position).add(new THREE.Vector3(10,0,0))
+			if(person.rotation.x == Math.PI || person.rotation.x == -Math.PI){
+				player.rotation.y = -person.rotation.y + Math.PI;
+				
+			}
+			else{
+				player.rotation.y = person.rotation.y;
+			}
+		}
+		movKey = true;
 	}
 	// left/right (strafe)
 	if (keyboard.pressed("A")) {
-		move.xDist -= moveDistance;
-		player.position.z -= moveDistance;
-		player.rotation.y = 0 * Math.PI / 180;
-		//player.rotation.y = 90 * Math.PI / 180;
-		//player.position.x -= moveDistance;
+		move.xDist -= moveDistance * 2;
 		movKey = true;
+		if (player) {
+			player.position.copy(person.position).add(new THREE.Vector3(10,0,0))
+			if(person.rotation.x == Math.PI || person.rotation.x == -Math.PI){
+				player.rotation.y = -person.rotation.y + Math.PI;
+				
+			}
+			else{
+				player.rotation.y = person.rotation.y;
+			}
+		}
 	}
 	if (keyboard.pressed("D")) {
-		move.xDist += moveDistance;
-		player.rotation.y = 180 * Math.PI / 180;
-		//player.rotation.y = -90 * Math.PI / 180;
-		player.position.z += moveDistance;
-		//player.position.x += moveDistance;
+		move.xDist += moveDistance * 2;
+		if (player) {
+			player.position.copy(person.position).add(new THREE.Vector3(10,0,0))
+			if(person.rotation.x == Math.PI || person.rotation.x == -Math.PI){
+				player.rotation.y = -person.rotation.y + Math.PI;
+				
+			}
+			else{
+				player.rotation.y = person.rotation.y;
+			}
+		}
 		movKey = true;
 
 	}
@@ -783,10 +827,28 @@ function update() {
 	if (keyboard.pressed("T")) {
 		person.velocity = new THREE.Vector3(0, 0, 0);
 		person.translateY(moveDistance);
+		if (player) {
+			player.position.copy(person.position).add(new THREE.Vector3(10,0,0))
+			if(person.rotation.x == Math.PI || person.rotation.x == -Math.PI){
+				player.rotation.y = -person.rotation.y + Math.PI;
+			}
+			else{
+				player.rotation.y = person.rotation.y;
+			}
+		}
 	}
 	if (keyboard.pressed("G")) {
 		person.velocity = new THREE.Vector3(0, 0, 0);
 		person.translateY(-moveDistance);
+		if (player) {
+			player.position.copy(person.position).add(new THREE.Vector3(10,0,0))
+			if(person.rotation.x == Math.PI || person.rotation.x == -Math.PI){
+				player.rotation.y = -person.rotation.y + Math.PI;
+			}
+			else{
+				player.rotation.y = person.rotation.y;
+			}
+		}
 	}
 
 	person.translateZ(move.zDist);
@@ -794,35 +856,42 @@ function update() {
 	person.translateX(move.xDist);
 	person.updateMatrix();
 
-	
+
 	// look up/down
 	if (keyboard.pressed("3")) { // third-person view
-		if (player) {
-			camera.lookAt(player.position);
-			camera.rotation.set(0,0,0);
-			camera.position.set(300,400,250);	
-		}
-		
-	}
-		
-	if (keyboard.pressed("1")) {
-		
+		scene.add(player);
 		camera.position.set(0, 100, 30);
-		camera.rotation.set(0,0,0);
-		
+		camera.rotation.set(0, 0, 0);
+		if (player) {
+			player.position.copy(person.position).add(new THREE.Vector3(10,0,0))
+			if(person.rotation.x == Math.PI || person.rotation.x == -Math.PI){
+				player.rotation.y = -person.rotation.y + Math.PI;
+			}
+			else{
+				player.rotation.y = person.rotation.y;
+			}
+		}
 	}
-	if (keyboard.pressed("R"))
+
+	if (keyboard.pressed("1")) {
+		scene.remove(player);
+		camera.position.set(0, 0, 0);
+		//camera.rotation.set(0,0,0);
+
+
+	}
+	/*if (keyboard.pressed("R"))
 		camera.rotateX(rotateAngle);
 	if (keyboard.pressed("F"))
-		camera.rotateX(-rotateAngle);
+		camera.rotateX(-rotateAngle);*/
 
 	// process data from mouse look
 	//  (if inactive, there will be no change)
 
 	// limit camera to +/- 45 degrees (0.7071 radians) or +/- 60 degrees (1.04 radians)
 	camera.rotation.x = THREE.Math.clamp(camera.rotation.x, -1.04, 1.04);
-	if(player)
-	player.rotation.x = THREE.Math.clamp(player.rotation.x, -1.04, 1.04);
+	if (player)
+		player.rotation.x = THREE.Math.clamp(player.rotation.x, -1.04, 1.04);
 	// pressing both buttons moves look angle to horizon
 	if (keyboard.pressed("R") && keyboard.pressed("F"))
 		camera.rotateX(-6 * camera.rotation.x * rotateAngle);
@@ -1042,10 +1111,10 @@ function animate() {
 	update();
 	checkCheckpoint();
 	checkCollectibleInteractions();
-	const clockDelta = clock.getDelta() * 3;
+	const clockDelta = clock.getDelta() * 2;
 	if (mixer) { mixer.update(clockDelta); }
 
-
+	console.log(person.rotation);
 
 
 
