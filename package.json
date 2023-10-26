@@ -1,14 +1,19 @@
 {
+  "name": "vite-project",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
   "scripts": {
-    "dev": "vite --host 127.0.01"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "devDependencies": {
-    "vite": "^4.4.9"
+    "vite": "^4.4.5"
   },
   "dependencies": {
-    "cannon-es": "^0.20.0",
-    "cannon-es-debugger": "^1.0.0",
-    "gsap": "^3.12.2",
-    "three": "^0.156.1"
+    "ammo": "^3.0.3",
+    "ammo.js": "github:kripken/ammo.js",
+    "three": "^0.157.0"
   }
 }

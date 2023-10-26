@@ -316,14 +316,14 @@ function updateProgressBar() {
 	currentProgress += progressIncrement;
 	progressBar.style.width = currentProgress + '%';
 
-	if (currentProgress < 100) {
+	if (currentProgress < 1) {
 		requestAnimationFrame(updateProgressBar);
 	} else {
 		// Loading complete, hide the loading screen
 		setTimeout(() => {
 			loadingScreen.style.display = 'none';
 
-		}, 1000); // Hide after 1 second
+		}, 1); // Hide after 1 second
 	}
 
 }
@@ -487,12 +487,12 @@ function init() {
 	gltfLoader = new THREE.GLTFLoader();
 	gunLoader = new THREE.GLTFLoader();
 	house;
-	gltfLoader.load('./house/scene.glb', function (gltf) {
+	gltfLoader.load('./models/house/scene.glb', function (gltf) {
 		house = gltf.scene;
-		house.position.x = 3000;
-		house.position.z = 500;
+		house.position.set(0,0,0)
 		house.scale.set(40, 40, 40);
 		house.rotation.y = Math.PI / 2;
+		house.position.z = 70;
 		//house.position.y = -190;
 
 		house.traverse(function (node) {
@@ -1104,6 +1104,7 @@ function updateCountdown(timestamp) {
 }
 requestAnimationFrame(updateCountdown);
 
+person.position.z = 400;
 
 function animate() {
 	requestAnimationFrame(animate);

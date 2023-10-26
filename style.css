@@ -157,3 +157,61 @@ button:focus-visible {
   color: #333;
   margin-bottom: 10px; /* Adjust the spacing as needed */
 }
+
+#inventory {
+  position: fixed;
+  background-color: rgba(110, 127, 128, 0.12);
+  height: 550px;
+  width: 120px;
+  margin: 25px;
+  padding: 10px;
+  overflow-x: clip;
+  overflow-y: auto;
+}
+
+.inv-item {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 10px;
+  height: 100px;
+  width: 100px;
+  opacity: 1;
+  border: 1px solid #213547;
+  object-fit: fill;
+  object-fit: contain;
+}
+
+.inv-item:hover {
+  border-color: #007bff;
+}
+
+.inv-item:focus {
+  border-color: #007bff;
+}
+
+#inventory::-webkit-scrollbar {
+  width: 12px;
+}
+
+#inventory::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.3)
+}
+
+#inventory::-webkit-scrollbar-thumb {
+  background: #999;
+}
+
+#inventory::-webkit-scrollbar-thumb:hover {
+  background: #777;
+}
+
+#inventory::-webkit-scrollbar-button {
+  display: none;
+}
+
+#gameover {
+  position: fixed;
+  font-size: 200px;
+  color: #42b14d;
+}
