@@ -313,23 +313,32 @@ let currentProgress = 0;
 const progressIncrement = totalProgressSteps / 1000; // Update progress every 10ms
 
 function updateProgressBar() {
-	currentProgress += progressIncrement;
-	progressBar.style.width = currentProgress + '%';
+    currentProgress += progressIncrement;
+    progressBar.style.width = currentProgress + '%';
 
-	if (currentProgress < 100) {
-		requestAnimationFrame(updateProgressBar);
-	} else {
-		// Loading complete, hide the loading screen
-		setTimeout(() => {
-			loadingScreen.style.display = 'none';
+    if (currentProgress < 100) {
+        requestAnimationFrame(updateProgressBar);
+    } else {
+        // Loading complete, hide the loading screen
+        setTimeout(() => {
+            loadingScreen.style.display = 'none';
 
-		}, 1000); // Hide after 1 second
-	}
+            // Show the follow-up instructions div
+           // const followUpInstructions = document.getElementById('follow-up-instructions');
+           // followUpInstructions.style.display = 'block';
 
+            // Hide the follow-up instructions after 3 seconds
+            setTimeout(() => {
+                followUpInstructions.style.display = 'none';
+            }, 10000); // Hide after 8 seconds
+        }, 1000); // Hide loading screen after 1 second
+    }
 }
+
 
 // Initial call to start the progress animation
 updateProgressBar();
+
 
 
 // standard global variables
@@ -414,6 +423,32 @@ function init() {
 	//scene.add(skyBox);
 
 
+	// Create an audio context and buffer source
+const context = new (window.AudioContext || window.webkitAudioContext)();
+const source = context.createBufferSource();
+
+// Load and play the audio when the page loads
+const audioLoader = new THREE.AudioLoader();
+audioLoader.load('models/Hitman.mp3', (buffer) => {
+  source.buffer = buffer;
+  source.connect(context.destination);
+  source.start(0);
+});
+
+// Make sure the audio continues looping
+source.loop = true;
+
+// Check if the context is suspended (e.g., due to autoplay restrictions)
+if (context.state === 'suspended') {
+  context.resume().then(() => {
+    console.log('Audio context has been resumed automatically.');
+  });
+}
+
+
+
+
+
 
 
 	person = new THREE.Object3D();
@@ -487,7 +522,7 @@ function init() {
 	gltfLoader = new THREE.GLTFLoader();
 	gunLoader = new THREE.GLTFLoader();
 	house;
-	gltfLoader.load('./house/scene.glb', function (gltf) {
+	gltfLoader.load('house/scene.glb', function (gltf) {
 		house = gltf.scene;
 		house.position.x = 3000;
 		house.position.z = 500;
@@ -506,7 +541,7 @@ function init() {
 		scene.add(house);
 		//walls.push(house);
 		loader1 = new THREE.GLTFLoader();
-		loader1.load('./models/sky/scene.gltf', function (gltf) {
+		loader1.load('models/sky/scene.gltf', function (gltf) {
 			const sky = gltf.scene;
 			sky.traverse(function (node) {
 				if (node.isMesh) {
@@ -659,7 +694,7 @@ function init() {
 			'mozPointerLockElement' in document ||
 			'webkitPointerLockElement' in document;
 		if (!havePointerLock) return;
-
+	
 		var element = document.body;
 		// Ask the browser to lock the pointer
 		element.requestPointerLock = element.requestPointerLock ||
@@ -667,15 +702,15 @@ function init() {
 			element.webkitRequestPointerLock;
 		// Ask the browser to lock the pointer
 		element.requestPointerLock();
-
+	
 		// Hook pointer lock state change events
 		document.addEventListener('pointerlockchange', pointerLockChange, false);
 		document.addEventListener('mozpointerlockchange', pointerLockChange, false);
 		document.addEventListener('webkitpointerlockchange', pointerLockChange, false);
-
+	
 		// Hook mouse move events
 		// document.addEventListener("mousemove", this.moveCallback, false);
-
+	
 	}, false);
 
 
@@ -949,37 +984,96 @@ function collision(wallArray) {
 
 
 const textEditor = document.getElementById('textEditor');
-var textMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+const textMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
 
-var textGeometry = new TextGeometry("New Text", {
+// Function to create a text mesh
+function createTextMesh(text) {
+    const textGeometry = new TextGeometry(text, {
+        size: 0.5,
+        height: 0.1,
+    });
+    return new THREE.Mesh(textGeometry, textMaterial);
+}
 
-	size: 0.5,
-	height: 0.1,
-});
-var textMesh = new THREE.Mesh(textGeometry, textMaterial);
+let textMesh; // Initialize textMesh variable
+
 textEditor.addEventListener('input', function () {
-	const newText = textEditor.value;
-	textMesh.geometry = new TextGeometry(newText, /* your options */);
-	// You may need to update the position, material, etc., depending on your use case.
+    const newText = textEditor.value;
+
+    if (!textMesh) {
+        textMesh = createTextMesh(newText);
+        // Set the initial position, material, etc., for the text mesh.
+        // Example: textMesh.position.set(x, y, z);
+        // Example: textMesh.material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        // Add the textMesh to your scene.
+        scene.add(textMesh);
+    } else {
+        textMesh.geometry = new TextGeometry(newText, /* your options */);
+        // You may need to update the position, material, etc., depending on your use case.
+    }
 });
-const collisionButton = document.getElementById('collisionButton'); // Create a button element
+
+const collisionButton = document.getElementById('collisionButton');
+const submitButton = document.getElementById('submitButton');
 
 collisionButton.addEventListener('click', function () {
-	textEditor.style.display = 'block';
+    textEditor.style.display = 'block';
 });
 
+// Event listener for the Enter key
+textEditor.addEventListener('keydown', function (event) {
+    if (event.key === 'Enter') {
+        const enteredText = textEditor.value.toLowerCase(); // Convert input to lowercase
 
-const submitButton = document.createElement('button');
-submitButton.id = 'submitButton';
-submitButton.textContent = 'Submit';
+        if (enteredText === 'yes') {
+            // Show the quiz popup
+			const quizPopup = document.getElementById('quizPopup');
+			if (quizPopup) {
+				quizPopup.style.display = 'block';
+			} else {
+				console.error("Element with ID 'quizPopup' not found.");
+			}
 
-// Append the button to the document body
-document.body.appendChild(submitButton);
+            // Handle the quiz submission
+            const quizSubmitButton = document.getElementById('quiz-submit-button');
+            quizSubmitButton.addEventListener('click', function () {
+                // Handle the quiz submission logic here
+                // You can check the selected answer and provide feedback
+                // You can also hide the quiz popup after submission
+                quizPopup.style.display = 'none';
+            });
+        } else {
+            console.log('Entered text:', enteredText);
+        }
+
+        // Clear the editor
+        textEditor.value = '';
+    }
+});
+
+// Event listener for the "Submit" button
 submitButton.addEventListener('click', function () {
-	const enteredText = textEditor.value;
-	console.log('Entered text:', enteredText);
+    const enteredText = textEditor.value.toLowerCase(); // Convert input to lowercase
 
-	// You can use the entered text in your JavaScript logic here.
+    if (enteredText === 'yes') {
+        // Show the quiz popup
+        const quizPopup = document.getElementById('quiz-popup');
+        quizPopup.style.display = 'block';
+
+        // Handle the quiz submission
+        const quizSubmitButton = document.getElementById('quiz-submit-button');
+        quizSubmitButton.addEventListener('click', function () {
+            // Handle the quiz submission logic here
+            // You can check the selected answer and provide feedback
+            // You can also hide the quiz popup after submission
+            quizPopup.style.display = 'none';
+        });
+    } else {
+        console.log('Entered text:', enteredText);
+    }
+
+    // Clear the editor
+    textEditor.value = '';
 });
 
 
@@ -1007,7 +1101,7 @@ function collisionRemove(wallArray) {
 // Score and collectible count
 const normalMaterial = new THREE.MeshNormalMaterial()
 let score = 0;
-let collectibleCount = 2; // Change this value based on the number of collectibles in your scene
+let collectibleCount = 10; // Change this value based on the number of collectibles in your scene
 var collectible;
 
 // Function to create collectible cubes
@@ -1021,14 +1115,22 @@ function createCollectible(x, y, z) {
 
 }
 
-// Create collectible cubes at random positions
-for (let i = 0; i < collectibleCount; i++) {
-	const x = Math.random() * 100 - 10; // Random x position between -10 and 10
-	const y = 0.5; // Set to half of the player's height
-	const z = Math.random() * 100 - 10; // Random z position between -10 and 10
-	createCollectible(x, y, z);
+// // Create collectible cubes at random positions
+// for (let i = 0; i < collectibleCount; i++) {
+// 	const x = Math.random() * 100 - 10; // Random x position between -10 and 10
+// 	const y = 0.5; // Set to half of the player's height
+// 	const z = Math.random() * 100 - 10; // Random z position between -10 and 10
+// 	createCollectible(x, y, z);
 
-}
+// }
+
+createCollectible(4000,5,5);
+createCollectible(4000,10,4000);
+createCollectible(4000,5,-2000);
+createCollectible(4000,10,5);
+createCollectible(4000,10,1000);
+createCollectible(2000,5,-4000);
+
 
 // Function to handle interactions with collectibles
 function handleCollectibleInteraction() {
@@ -1073,37 +1175,37 @@ function checkCollectibleInteractions() {
 }
 
 function updateCountdown(timestamp) {
+    if (!previousTimestamp) {
+        previousTimestamp = timestamp;
+    }
+    const deltaTime = timestamp - previousTimestamp;
+    previousTimestamp = timestamp;
 
-	if (!previousTimestamp) {
-		previousTimestamp = timestamp;
-	}
-	const deltaTime = timestamp - previousTimestamp;
-	previousTimestamp = timestamp;
+    // Update the time remaining.
+    timeRemaining -= deltaTime / 1000; // Convert milliseconds to seconds;
 
-	// Update the time remaining.
-	timeRemaining -= deltaTime / 1000; // Convert milliseconds to seconds.
+    if (timeRemaining <= 0) {
+        document.getElementById('countdown-text').innerHTML = 'Countdown Expired';
+        document.getElementById('progress-bar').style.width = '0%';
+        return;
+    }
 
-	if (timeRemaining <= 0) {
-		document.getElementById('countdown').innerHTML = 'Countdown Expired';
-		return;
-	}
+    const minutes = Math.floor(timeRemaining / 60);
+    const seconds = Math.floor(timeRemaining % 60);
 
-	const minutes = Math.floor(timeRemaining / 60);
-	const seconds = Math.floor(timeRemaining % 60);
+    // Update the countdown text.
+    document.getElementById('countdown-text').innerHTML = `Timer: ${minutes}m ${seconds}s`;
 
+    // Update the progress bar.
+    const totalDuration = 300; // Total duration in seconds
+    const remainingPercentage = ((totalDuration - timeRemaining) / totalDuration) * 100;
+    document.getElementById('progress-bar').style.width = remainingPercentage + '%';
 
-
-
-
-
-	// Update the HTML element with the countdown.
-	document.getElementById('countdown').innerHTML = `${minutes}m ${seconds}s`;
-
-	// Request the next frame.
-	requestAnimationFrame(updateCountdown);
+    // Request the next frame.
+    requestAnimationFrame(updateCountdown);
 }
-requestAnimationFrame(updateCountdown);
 
+requestAnimationFrame(updateCountdown);
 
 function animate() {
 	requestAnimationFrame(animate);
