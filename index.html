@@ -28,9 +28,8 @@
 
     <div id="start-screen" style="display: none; background-color: black; color: white; position: absolute; left: 0; top: 0; width: 100%; height: 100%; text-align: center;">
         <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; text-align: center;">
-            <h1 style="font-size: 36px; margin-bottom: 20px; color: black;">UnderCover Infiltration</h1>
             <button id="start-game-button" class="start-button">Start Game</button>
-            <button id="options-button" class="start-button">Options</button>
+            <button id="options-button" class="start-button">Game Controls</button>
             <button id="credits-button" class="start-button">Credits</button>
         </div>
     </div>
@@ -60,8 +59,19 @@
             <li>You also have to Solve the Problem that Comes with the clue</li>
             <li>You have 2 Minutes to get the Key to the House/li>
             <li>Your Time starts.. NOW</li>
-        </ul>
-    </div>-->
+        </ul> -->
+
+        <div id="game-controls">
+            <p>Controls:</p>
+            <p>W - Forward</p>
+            <p>A - Left</p>
+            <p>D - Right</p>
+            <p>S - Backward</p>
+            <p>T - Jump</p>
+        </div>
+        
+
+    </div>
      <div id="countdown" style="position: absolute; top: 10px; right: 10px; font-size: 20px; z-index: 1;">
       <div id="timer-container">
           <div id="progress-bar"></div>
@@ -87,6 +97,7 @@
             // Hide the loading screen and show the start screen
             const loadingScreen = document.getElementById("loading-screen");
             const startScreen = document.getElementById("start-screen");
+            const game = document.getElementById("game-controls");
             loadingScreen.style.display = "block";
             startScreen.style.display = "block";
 
@@ -96,6 +107,8 @@
                 // Show the game and hide the start screen.
                 startScreen.style.display = "none";
                 // Add your code to start the game.
+                game.style.display = "block";
+                
             });
 
             document.getElementById("options-button").addEventListener("click", function () {

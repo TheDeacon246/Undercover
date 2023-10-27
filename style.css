@@ -220,3 +220,40 @@ background-image: url('./Underwhat.png');
   height: 100%;
   z-index: 3;
 }
+
+#pause-overlay {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#resume-button, #quit-button {
+  background-color: blue;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  cursor: pointer;
+  margin: 10px;
+}
+
+#game-controls {
+  z-index: 9999;
+  position: fixed;
+  bottom: 10px; /* Adjust this value to control the vertical position */
+  left: 10px; /* Adjust this value to control the horizontal position */
+  background-color: rgba(0, 0, 0, 0.7); /* Background color with some transparency */
+  color: white; /* Text color */
+  padding: 10px; /* Padding for the control element */
+  border: 1px solid #666; /* Border for the control element */
+}
+
+#game-controls p {
+  margin: 5px 0;
+}
