@@ -1,61 +1,167 @@
-<!doctype html>
 <html lang="en">
-
 <head>
-  <title>Investigate</title>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-  <link rel=stylesheet href="style.css" />
-  <style>
-    #countdown {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      font-size: 20px;
-      z-index: 1;
-      /* Ensure the timer is above other elements. */
-    }
-  </style>
-
+    <title>Investigate</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
-  <div id="app"></div>
-  <script src="Three.js"></script>
-  <script src="KeyboardState.js"></script>
-  <script src="Detector.js"></script>
-  <script src="Stats.js"></script>
-  <script src="FullScreen.js"></script>
-  <script src="WindowResize.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r124/three.min.js"></script>
-  <script src="https://unpkg.com/three@0.126.0/examples/js/loaders/GLTFLoader.js"></script>
+    <div id="app"></div>
 
+    <button id="collisionButton">Show Text Editor</button>
+<div id="aboveText">The Clue:</div>
+<input type="text" id="textEditor" placeholder="Type in Yes For The Clue">
+<button id="submitButton">Submit</button>
 
-  <button id="collisionButton">Show Text Editor</button>
-  <div id="aboveText">What is the square root of 64:</div>
-  <input type="text" id="textEditor" placeholder="What is the square root of 64?">
-  <button id="submitButton">Submit</button>
+    <div id="ThreeJS" style="position: absolute; left: 0px; top: 0px"></div>
 
-
-  
-  <div id="countdown"></div>
-
-
-
-  <div id="ThreeJS" style="position: absolute; left:0px; top:0px"></div>
-  <div id="loading-screen">
-    <div id="loading-background">
-
+    <!-- Loading screen -->
+    <div id="loading-screen">
+        <div id="loading-background"></div>
+        <div id="loading-content">
+            <h1>UnderCover Infiltration</h1>
+            <div id="loading-progress">
+                <div id="loading-progress-bar"></div>
+            </div>
+        </div>
     </div>
-    <div id="loading-content">
-      <h1>UnderCover Infiltration</h1>
-      <div id="loading-progress">
-        <div id="loading-progress-bar"></div>
+
+    <div id="start-screen" style="display: none; background-color: black; color: white; position: absolute; left: 0; top: 0; width: 100%; height: 100%; text-align: center;">
+        <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; text-align: center;">
+            <h1 style="font-size: 36px; margin-bottom: 20px; color: black;">UnderCover Infiltration</h1>
+            <button id="start-game-button" class="start-button">Start Game</button>
+            <button id="options-button" class="start-button">Options</button>
+            <button id="credits-button" class="start-button">Credits</button>
+        </div>
+    </div>
+    
+    <div id="quizPopup" style="display: none;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: rgb(0, 0, 0); padding: 20px;">
+            <h2>The Key To the House</h2>
+            <p>Question 1: What could be the Dealers Passcode into the House?</p>
+            <input type="radio" name="q1" value="1806"> 1806<br>
+            <input type="radio" name="q1" value="0202"> 0202<br>
+            <input type="radio" name="q1" value="0205"> 0205<br>
+            <input type="radio" name="q1" value="2306"> 2306<br>
+            <button id="quiz-submit-button">Submit</button>
+            <div id="quiz-feedback" style="display: none;"></div>
+        </div>
+    </div>
+
+    
+    
+    
+    <!-- Follow-up instructions screen (initially hidden)
+    <div id="follow-up-instructions" style="display: none; background-color: black; color: white; position: absolute; left: 0; top: 0; width: 100%; height: 100%; text-align: center; justify-content: center; align-items: center; display: flex; flex-direction: column;">
+        <h2>Level One UnderCover Agent:</h2>
+        <ul>
+            <li>Three Houses, One of the Houses has the Clue to Get The Key</li>
+            <li>But DO you have Enough time go to Every House to look for the Clue</li>
+            <li>You also have to Solve the Problem that Comes with the clue</li>
+            <li>You have 2 Minutes to get the Key to the House/li>
+            <li>Your Time starts.. NOW</li>
+        </ul>
+    </div>-->
+     <div id="countdown" style="position: absolute; top: 10px; right: 10px; font-size: 20px; z-index: 1;">
+      <div id="timer-container">
+          <div id="progress-bar"></div>
+          <div id="countdown-text">Timer: 00m 00s</div>
       </div>
-    </div>
+  </div>
+   
+  
 
+    <script src="Three.js"></script>
+    <script src="KeyboardState.js"></script>
+    <script src="Detector.js"></script>
+    <script src="Stats.js"></script>
+    <script src="FullScreen.js"></script>
+    <script src="WindowResize.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r124/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.126.0/examples/js/loaders/GLTFLoader.js"></script>
     <script type="module" src="main.js"></script>
 
-</body>
+    <script>
+        // JavaScript code for controlling the visibility of screens and handling events
+        document.addEventListener("DOMContentLoaded", function () {
+            // Hide the loading screen and show the start screen
+            const loadingScreen = document.getElementById("loading-screen");
+            const startScreen = document.getElementById("start-screen");
+            loadingScreen.style.display = "block";
+            startScreen.style.display = "block";
 
+            // Add event listeners for start screen buttons
+            document.getElementById("start-game-button").addEventListener("click", function () {
+                // Handle the "Start Game" action.
+                // Show the game and hide the start screen.
+                startScreen.style.display = "none";
+                // Add your code to start the game.
+            });
+
+            document.getElementById("options-button").addEventListener("click", function () {
+                // Handle the "Options" action.
+                // Add your code to open the options menu.
+            });
+
+            document.getElementById("credits-button").addEventListener("click", function () {
+                // Handle the "Credits" action.
+                // Add your code to display the credits screen.
+            });
+        });
+    </script>
+<div id="pause-overlay" style="display: none; position: absolute; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 2;">
+  <!-- Add pause menu content here -->
+  <h2>Game Paused</h2>
+  <button id="resume-button">Resume</button>
+  <button id="quit-button">Quit</button>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+      const pauseOverlay = document.getElementById("pause-overlay");
+      const resumeButton = document.getElementById("resume-button");
+      const quitButton = document.getElementById("quit-button");
+      let gamePaused = false;
+
+      // Function to handle pause state
+      function togglePause() {
+          gamePaused = !gamePaused;
+          if (gamePaused) {
+              // Pause the game (stop animations, physics, etc.)
+              // Display the pause overlay
+              pauseOverlay.style.display = "block";
+          } else {
+              // Resume the game (resume animations, physics, etc.)
+              // Hide the pause overlay
+              pauseOverlay.style.display = "none";
+          }
+      }
+
+      // Event listener for the "Escape" key
+      document.addEventListener("keydown", function (event) {
+          if (event.key === "Escape") {
+              togglePause();
+          }
+      });
+
+      // Event listener for the "Resume" button
+      resumeButton.addEventListener("click", function () {
+          togglePause();
+      });
+
+      // Event listener for the "Quit" button
+      quitButton.addEventListener("click", function () {
+          // Handle quitting the game (e.g., return to the main menu)
+          // Add your code here
+          // For example, to return to the start screen, you can set the visibility of the start screen
+          const startScreen = document.getElementById("start-screen");
+          startScreen.style.display = "block";
+          // Hide the pause overlay
+          pauseOverlay.style.display = "none";
+      });
+  });
+</script>
+
+
+</body>
 </html>

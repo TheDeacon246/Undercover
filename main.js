@@ -323,25 +323,40 @@ function updateProgressBar() {
 		setTimeout(() => {
 			loadingScreen.style.display = 'none';
 
-		}, 1000); // Hide after 1 second
-	}
+			// Show the follow-up instructions div
+			// const followUpInstructions = document.getElementById('follow-up-instructions');
+			// followUpInstructions.style.display = 'block';
 
+			// Hide the follow-up instructions after 3 seconds
+			setTimeout(() => {
+				// followUpInstructions.style.display = 'none';
+			}, 10000); // Hide after 8 seconds
+		}, 1000); // Hide loading screen after 1 second
+	}
 }
+
 
 // Initial call to start the progress animation
 updateProgressBar();
 
 
+
 // standard global variables
-var container, scene, camera, renderer, controls, stats;
+var container, scene, camera, renderer, controls, stats, mapCamera;
 var keyboard = new THREEx.KeyboardState();
 var clock = new THREE.Clock();
 
 // custom global variables
-var person, house, gltfLoader, loader1, loader2, loader3, loader4, loader5, loader6, loader7, loader8, floor, gunLoader, gun, player;
+var person, house, gltfLoader, loaderCam, loaderCam2, loaderSecurity1, loaderSecurity2, loaderSecurity2, securityGuard,
+	securityGuard2, loader1, loader2, loader3, loader4, loader5, loader6, loaderSecurity13, loaderSecurity4,
+	loader7, loader8, floor, gunLoader, gun, player, securityGuard3, securityGuard4;
 const initialTimeInSeconds = 180;
 let timeRemaining = initialTimeInSeconds;
 let previousTimestamp = null;
+
+var mesh; //model mesh
+let mixer2, mixer3, mixer4, mixer5, mixer6, mixer7, mixer8; //animate animated objects
+
 
 var gravity = new THREE.Vector3(0, -9.8, 0);
 
@@ -372,6 +387,8 @@ function init() {
 	camera = new THREE.PerspectiveCamera(VIEW_ANGLE, ASPECT, NEAR, FAR);
 	// Create two cameras: first-person and third-person
 
+	
+
 	scene.add(camera);
 
 	// RENDERER
@@ -397,21 +414,32 @@ function init() {
 	light.position.set(0, 250, 0);
 	scene.add(light);
 
-	//SkyBox
-	var imgPrefix = "bluecloud";
-	var directions = ["_bk", "_dn", "_ft", "_lf", "_rt", "_up"];
-	var imgSuffix = ".jpg";
-	var skyGeometry = new THREE.CubeGeometry(10000, 10000, 10000);
 
-	var materialArray = [];
-	for (var i = 0; i < 6; i++)
-		materialArray.push(new THREE.MeshBasicMaterial({
-			map: THREE.ImageUtils.loadTexture(imgPrefix + directions[i] + imgSuffix),
-			side: THREE.BackSide
-		}));
-	var skyMaterial = new THREE.MeshFaceMaterial(materialArray);
-	var skyBox = new THREE.Mesh(skyGeometry, skyMaterial);
-	//scene.add(skyBox);
+
+	// Create an audio context and buffer source
+	const context = new (window.AudioContext || window.webkitAudioContext)();
+	const source = context.createBufferSource();
+
+	// Load and play the audio when the page loads
+	const audioLoader = new THREE.AudioLoader();
+	audioLoader.load('models/Hitman.mp3', (buffer) => {
+		source.buffer = buffer;
+		source.connect(context.destination);
+		source.start(0);
+	});
+
+	// Make sure the audio continues looping
+	source.loop = true;
+
+	// Check if the context is suspended (e.g., due to autoplay restrictions)
+	if (context.state === 'suspended') {
+		context.resume().then(() => {
+			console.log('Audio context has been resumed automatically.');
+		});
+	}
+
+
+
 
 
 
@@ -487,7 +515,7 @@ function init() {
 	gltfLoader = new THREE.GLTFLoader();
 	gunLoader = new THREE.GLTFLoader();
 	house;
-	gltfLoader.load('./house/scene.glb', function (gltf) {
+	gltfLoader.load('house/scene.glb', function (gltf) {
 		house = gltf.scene;
 		house.position.x = 3000;
 		house.position.z = 500;
@@ -506,7 +534,7 @@ function init() {
 		scene.add(house);
 		//walls.push(house);
 		loader1 = new THREE.GLTFLoader();
-		loader1.load('./models/sky/scene.gltf', function (gltf) {
+		loader1.load('models/sky/scene.gltf', function (gltf) {
 			const sky = gltf.scene;
 			sky.traverse(function (node) {
 				if (node.isMesh) {
@@ -647,6 +675,209 @@ function init() {
 
 
 	});
+	loaderSecurity1 = new THREE.GLTFLoader()
+	loaderSecurity1.load('models/combat_robot_ready_for_unreal_engine.glb',
+		(gltf) => {
+			securityGuard = gltf.scene;
+			securityGuard.traverse(function (node) {
+				if (node.isMesh) {
+					node.castShadow = true;
+					node.material.side = THREE.DoubleSide
+
+					walls.push(node);
+				}
+
+			});
+			securityGuard.position.set(0, -20, 0)
+			securityGuard.scale.set(45, 45, 45);
+			//m.rotation.y = -(Math.PI / 2);
+
+			// Create an AnimationMixer, and get the list of AnimationClip instances
+			mixer4 = new THREE.AnimationMixer(securityGuard);
+
+
+			// Update the mixer on each frame
+			mixer4.clipAction(THREE.AnimationUtils.subclip(gltf.animations[0])).setDuration(7).play();
+
+
+
+			scene.add(securityGuard);
+		})
+
+	loaderSecurity2 = new THREE.GLTFLoader()
+	loaderSecurity2.load('models/combat_robot_ready_for_unreal_engine.glb',
+		(gltf) => {
+			securityGuard2 = gltf.scene;
+			securityGuard2.traverse(function (node) {
+				if (node.isMesh) {
+					node.castShadow = true;
+					node.material.side = THREE.DoubleSide
+
+					walls.push(node);
+				}
+
+			});
+			securityGuard2.position.set(0, -20, 2000)
+			securityGuard2.scale.set(45, 45, 45);
+			//m.rotation.y = -(Math.PI / 2);
+
+			// Create an AnimationMixer, and get the list of AnimationClip instances
+			mixer5 = new THREE.AnimationMixer(securityGuard2);
+
+
+			// Update the mixer on each frame
+			mixer5.clipAction((gltf.animations[0])).setDuration(7).play();
+
+
+
+			scene.add(securityGuard2);
+		})
+
+
+	loaderSecurity4 = new THREE.GLTFLoader()
+	loaderSecurity4.load('models/combat_robot_ready_for_unreal_engine.glb',
+		(gltf) => {
+			securityGuard3 = gltf.scene;
+			securityGuard3.traverse(function (node) {
+				if (node.isMesh) {
+					node.castShadow = true;
+					node.material.side = THREE.DoubleSide
+
+					walls.push(node);
+				}
+
+			});
+			securityGuard3.position.set(0, -20, -2000)
+			securityGuard3.scale.set(45, 45, 45);
+			//m.rotation.y = -(Math.PI / 2);
+
+			// Create an AnimationMixer, and get the list of AnimationClip instances
+			mixer6 = new THREE.AnimationMixer(securityGuard3);
+
+
+			// Update the mixer on each frame
+			mixer6.clipAction((gltf.animations[0])).setDuration(7).play();
+
+
+
+			scene.add(securityGuard3);
+		})
+
+	//surveilence camera
+	const s = new THREE.Group()
+	loaderCam = new THREE.GLTFLoader();
+	loaderCam.load('camera/scene.gltf',
+		(gltf) => {
+			var m = gltf.scene;
+			m.position.set(2519, 223, 1103)
+			m.scale.set(50, 50, 50);
+			m.rotation.y = -(Math.PI / 2);
+
+			m.traverse(function (node) {
+				if (node.isMesh) {
+					node.castShadow = true;
+					node.material.side = THREE.DoubleSide
+
+					walls.push(node);
+				}
+
+			});
+			// Create an AnimationMixer, and get the list of AnimationClip instances
+			mixer2 = new THREE.AnimationMixer(m);
+			const clips = m.animations;
+
+			// Update the mixer on each frame
+			// mixer2.clipAction(gltf.animations[1]).setDuration(10).play();
+			mixer2.clipAction(gltf.animations[0]).setDuration(7).play();
+
+			scene.add(m);
+		})
+
+	loaderCam2 = new THREE.GLTFLoader();
+	loaderCam2.load('camera/scene.gltf',
+		(gltf) => {
+			var m = gltf.scene;
+			m.position.set(2758, 196, -212)
+			m.scale.set(50, 50, 50);
+			m.rotation.y = -(Math.PI / 2);
+
+			m.traverse(function (node) {
+				if (node.isMesh) {
+					node.castShadow = true;
+					node.material.side = THREE.DoubleSide
+
+					walls.push(node);
+				}
+
+			});
+
+			// Create an AnimationMixer, and get the list of AnimationClip instances
+			mixer3 = new THREE.AnimationMixer(m);
+			const clips = m.animations;
+
+			// Update the mixer on each frame
+			// mixer2.clipAction(gltf.animations[1]).setDuration(10).play();
+			mixer3.clipAction(gltf.animations[1]).setDuration(7).play();
+
+			scene.add(m);
+		})
+
+
+
+
+
+	//camera light
+	var view = new THREE.SpotLight(0xffee00, 30, 5, Math.PI / 12, 1, 0)
+	view.position.set(0.1, 3, 0)
+
+	s.add(view)
+	s.add(view.target)
+
+
+
+
+	//const radius = Math.sqrt(Math.pow(1.3 - 1, 2) + Math.pow(3.5 - 1, 2));
+
+	//light cone
+	const geom = new THREE.ConeGeometry(1.9, 4);
+	const matrial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+	const cone = new THREE.Mesh(geom, matrial);
+	cone.material.transparent = true;
+	cone.material.opacity = 0.5;
+
+	//angling the cone
+	cone.rotation.set(0, 0, 0.4);
+	cone.position.set(1.9, 0, 0);
+	s.add(cone);
+
+	s.rotation.y = 0;
+	s.position.set(2.3, 0, -3.5);
+	view.target.position.x = 2;
+	var h = new THREE.SpotLightHelper(view);
+
+	scene.add(h);
+	scene.add(s);
+
+	//createCollectible(1.5, 0.2, -2.2, "key");
+
+	//rotation variables
+	var r = 0.01
+	var t = new THREE.Vector3().copy(view.target.position); //keeps track of light focus location
+
+
+
+
+	//camera light
+	var view = new THREE.SpotLight(0xffee00, 30, 5, Math.PI / 12, 1, 0)
+	view.position.set(0.1, 3, 0)
+
+	s.add(view)
+	s.add(view.target)
+
+
+
+
+	const radius = Math.sqrt(Math.pow(1.3 - 1, 2) + Math.pow(3.5 - 1, 2));
 
 	var ambientLight = new THREE.AmbientLight(0xaaaaaa);
 	scene.add(ambientLight);
@@ -704,26 +935,14 @@ function pointerLockChange(event) {
 
 function projectXZ(v) { return new THREE.Vector3(v.x, 0, v.z); }
 
+
+
 function update() {
 	stats.update();
 	var delta = clock.getDelta(); // seconds since last update
 
 	var moveDistance = 400 * delta; // 200 pixels per second  // should be velocity?
 	var rotateAngle = Math.PI / 4 * delta;   // pi/4 radians (45 degrees) per second
-
-
-
-
-
-	/*if (keyboard.pressed("P")) {
-		camera.position.set(0, 35, 10); // first-person view
-		person.position.set(50, 100, 50);
-		//player.position.set(50, 100, 50);
-		//player.rotation.y = -Math.PI / 2.0;
-		person.rotation.y = -Math.PI / 2.0;
-		person.velocity = new THREE.Vector3(0, 0, 0);
-		//player.velocity = new THREE.Vector3(0, 0, 0);
-	}*/
 
 	// movement controls	
 	var move = { xDist: 0, yAngle: 0, zDist: 0 };
@@ -734,13 +953,46 @@ function update() {
 		move.zDist -= moveDistance * 2;
 		movKey = true;
 		if (player) {
-			player.position.copy(person.position).add(new THREE.Vector3(10,0,0))
-			if(person.rotation.x == Math.PI || person.rotation.x == -Math.PI){
+			player.position.copy(person.position).add(new THREE.Vector3(10, 0, 0))
+			if (person.rotation.x == Math.PI || person.rotation.x == -Math.PI) {
 				player.rotation.y = -person.rotation.y + Math.PI;
-				
+
 			}
-			else{
+			else {
 				player.rotation.y = person.rotation.y;
+			}
+		}
+		if (securityGuard) {
+			securityGuard.position.x -= moveDistance / 2;
+			securityGuard.rotation.y = -Math.PI / 2;
+			if (person.rotation.x == Math.PI || person.rotation.x == -Math.PI) {
+				securityGuard.rotation.y = -person.rotation.y + Math.PI;
+
+			}
+			else {
+				securityGuard.rotation.y = person.rotation.y;
+			}
+		}
+		if (securityGuard2) {
+			securityGuard2.position.x -= moveDistance / 2;
+			securityGuard2.rotation.y = -Math.PI / 2;
+			if (person.rotation.x == Math.PI || person.rotation.x == -Math.PI) {
+				securityGuard2.rotation.y = -person.rotation.y + Math.PI;
+
+			}
+			else {
+				securityGuard2.rotation.y = person.rotation.y;
+			}
+		}
+		if (securityGuard3) {
+			securityGuard3.position.x -= moveDistance / 2;
+			securityGuard3.rotation.y = -Math.PI / 2;
+			if (person.rotation.x == Math.PI || person.rotation.x == -Math.PI) {
+				securityGuard3.rotation.y = -person.rotation.y + Math.PI;
+
+			}
+			else {
+				securityGuard3.rotation.y = person.rotation.y;
 			}
 		}
 	}
@@ -748,13 +1000,47 @@ function update() {
 		move.zDist += moveDistance * 2;
 		movKey = true;
 		if (player) {
-			player.position.copy(person.position).add(new THREE.Vector3(10,0,0))
-			if(person.rotation.x == Math.PI || person.rotation.x == -Math.PI){
+			player.position.copy(person.position).add(new THREE.Vector3(10, 0, 0))
+			if (person.rotation.x == Math.PI || person.rotation.x == -Math.PI) {
 				player.rotation.y = -person.rotation.y + Math.PI;
-				
+
 			}
-			else{
+			else {
 				player.rotation.y = person.rotation.y;
+			}
+		}
+
+		if (securityGuard) {
+			securityGuard.position.x += moveDistance / 2;
+			securityGuard.rotation.y = Math.PI / 2;
+			if (person.rotation.x == Math.PI || person.rotation.x == -Math.PI) {
+				securityGuard.rotation.y = -person.rotation.y + Math.PI;
+
+			}
+			else {
+				securityGuard.rotation.y = person.rotation.y;
+			}
+		}
+		if (securityGuard2) {
+			securityGuard2.position.x += moveDistance / 2;
+			securityGuard2.rotation.y = Math.PI / 2;
+			if (person.rotation.x == Math.PI || person.rotation.x == -Math.PI) {
+				securityGuard2.rotation.y = -person.rotation.y + Math.PI;
+
+			}
+			else {
+				securityGuard2.rotation.y = person.rotation.y;
+			}
+		}
+		if (securityGuard3) {
+			securityGuard3.position.x += moveDistance / 2;
+			securityGuard3.rotation.y = Math.PI / 2;
+			if (person.rotation.x == Math.PI || person.rotation.x == -Math.PI) {
+				securityGuard3.rotation.y = -person.rotation.y + Math.PI;
+
+			}
+			else {
+				securityGuard3.rotation.y = person.rotation.y;
 			}
 		}
 	}
@@ -762,26 +1048,26 @@ function update() {
 	if (keyboard.pressed("Q")) {
 		move.yAngle += rotateAngle;
 		if (player) {
-			player.position.copy(person.position).add(new THREE.Vector3(10,0,0))
-			if(person.rotation.x == Math.PI || person.rotation.x == -Math.PI){
+			player.position.copy(person.position).add(new THREE.Vector3(10, 0, 0))
+			if (person.rotation.x == Math.PI || person.rotation.x == -Math.PI) {
 				player.rotation.y = -person.rotation.y + Math.PI;
-				
+
 			}
-			else{
+			else {
 				player.rotation.y = person.rotation.y;
 			}
 		}
 		movKey = true;
 	}
 	if (keyboard.pressed("E")) {
-		move.yAngle -= rotateAngle ;
+		move.yAngle -= rotateAngle;
 		if (player) {
-			player.position.copy(person.position).add(new THREE.Vector3(10,0,0))
-			if(person.rotation.x == Math.PI || person.rotation.x == -Math.PI){
+			player.position.copy(person.position).add(new THREE.Vector3(10, 0, 0))
+			if (person.rotation.x == Math.PI || person.rotation.x == -Math.PI) {
 				player.rotation.y = -person.rotation.y + Math.PI;
-				
+
 			}
-			else{
+			else {
 				player.rotation.y = person.rotation.y;
 			}
 		}
@@ -792,26 +1078,92 @@ function update() {
 		move.xDist -= moveDistance * 2;
 		movKey = true;
 		if (player) {
-			player.position.copy(person.position).add(new THREE.Vector3(10,0,0))
-			if(person.rotation.x == Math.PI || person.rotation.x == -Math.PI){
+			player.position.copy(person.position).add(new THREE.Vector3(10, 0, 0))
+			if (person.rotation.x == Math.PI || person.rotation.x == -Math.PI) {
 				player.rotation.y = -person.rotation.y + Math.PI;
-				
+
 			}
-			else{
+			else {
 				player.rotation.y = person.rotation.y;
+			}
+		}
+		if (securityGuard) {
+			securityGuard.position.z -= moveDistance / 2;
+			securityGuard.rotation.y = -Math.PI
+			if (person.rotation.x == Math.PI || person.rotation.x == -Math.PI) {
+				securityGuard.rotation.y = -person.rotation.y + Math.PI;
+
+			}
+			else {
+				securityGuard.rotation.y = person.rotation.y;
+			}
+		}
+		if (securityGuard2) {
+			securityGuard2.position.z -= moveDistance / 2;
+			securityGuard2.rotation.y = -Math.PI;
+			if (person.rotation.x == Math.PI || person.rotation.x == -Math.PI) {
+				securityGuard2.rotation.y = -person.rotation.y + Math.PI;
+
+			}
+			else {
+				securityGuard2.rotation.y = person.rotation.y;
+			}
+		}
+		if (securityGuard3) {
+			securityGuard3.position.z -= moveDistance / 2;
+			securityGuard3.rotation.y = -Math.PI;
+			if (person.rotation.x == Math.PI || person.rotation.x == -Math.PI) {
+				securityGuard3.rotation.y = -person.rotation.y + Math.PI;
+
+			}
+			else {
+				securityGuard3.rotation.y = person.rotation.y;
 			}
 		}
 	}
 	if (keyboard.pressed("D")) {
 		move.xDist += moveDistance * 2;
 		if (player) {
-			player.position.copy(person.position).add(new THREE.Vector3(10,0,0))
-			if(person.rotation.x == Math.PI || person.rotation.x == -Math.PI){
+			player.position.copy(person.position).add(new THREE.Vector3(10, 0, 0))
+			if (person.rotation.x == Math.PI || person.rotation.x == -Math.PI) {
 				player.rotation.y = -person.rotation.y + Math.PI;
-				
+
 			}
-			else{
+			else {
 				player.rotation.y = person.rotation.y;
+			}
+		}
+		if (securityGuard) {
+			securityGuard.position.z += moveDistance / 2;
+			securityGuard.rotation.y = 0;
+			if (person.rotation.x == Math.PI || person.rotation.x == -Math.PI) {
+				securityGuard.rotation.y = -person.rotation.y + Math.PI;
+
+			}
+			else {
+				securityGuard.rotation.y = person.rotation.y;
+			}
+		}
+		if (securityGuard2) {
+			securityGuard2.position.z += moveDistance / 2;
+			securityGuard2.rotation.y = 0;
+			if (person.rotation.x == Math.PI || person.rotation.x == -Math.PI) {
+				securityGuard2.rotation.y = -person.rotation.y + Math.PI;
+
+			}
+			else {
+				securityGuard2.rotation.y = person.rotation.y;
+			}
+		}
+		if (securityGuard3) {
+			securityGuard3.position.z += moveDistance / 2;
+			securityGuard3.rotation.y = 0;
+			if (person.rotation.x == Math.PI || person.rotation.x == -Math.PI) {
+				securityGuard3.rotation.y = -person.rotation.y + Math.PI;
+
+			}
+			else {
+				securityGuard3.rotation.y = person.rotation.y;
 			}
 		}
 		movKey = true;
@@ -828,11 +1180,11 @@ function update() {
 		person.velocity = new THREE.Vector3(0, 0, 0);
 		person.translateY(moveDistance);
 		if (player) {
-			player.position.copy(person.position).add(new THREE.Vector3(10,0,0))
-			if(person.rotation.x == Math.PI || person.rotation.x == -Math.PI){
+			player.position.copy(person.position).add(new THREE.Vector3(10, 0, 0))
+			if (person.rotation.x == Math.PI || person.rotation.x == -Math.PI) {
 				player.rotation.y = -person.rotation.y + Math.PI;
 			}
-			else{
+			else {
 				player.rotation.y = person.rotation.y;
 			}
 		}
@@ -841,11 +1193,11 @@ function update() {
 		person.velocity = new THREE.Vector3(0, 0, 0);
 		person.translateY(-moveDistance);
 		if (player) {
-			player.position.copy(person.position).add(new THREE.Vector3(10,0,0))
-			if(person.rotation.x == Math.PI || person.rotation.x == -Math.PI){
+			player.position.copy(person.position).add(new THREE.Vector3(10, 0, 0))
+			if (person.rotation.x == Math.PI || person.rotation.x == -Math.PI) {
 				player.rotation.y = -person.rotation.y + Math.PI;
 			}
-			else{
+			else {
 				player.rotation.y = person.rotation.y;
 			}
 		}
@@ -863,11 +1215,11 @@ function update() {
 		camera.position.set(0, 100, 30);
 		camera.rotation.set(0, 0, 0);
 		if (player) {
-			player.position.copy(person.position).add(new THREE.Vector3(10,0,0))
-			if(person.rotation.x == Math.PI || person.rotation.x == -Math.PI){
+			player.position.copy(person.position).add(new THREE.Vector3(10, 0, 0))
+			if (person.rotation.x == Math.PI || person.rotation.x == -Math.PI) {
 				player.rotation.y = -person.rotation.y + Math.PI;
 			}
-			else{
+			else {
 				player.rotation.y = person.rotation.y;
 			}
 		}
@@ -938,7 +1290,7 @@ function collision(wallArray) {
 
 		var ray = new THREE.Raycaster(person.position, directionVector.clone().normalize());
 		var collisionResults = ray.intersectObjects(wallArray);
-		if (collisionResults.length > 0 && collisionResults[0].distance < directionVector.length())
+		if (collisionResults.length > 0 && collisionResults[0].distance < directionVector.length() - 2)
 			return true;
 
 	}
@@ -949,39 +1301,102 @@ function collision(wallArray) {
 
 
 const textEditor = document.getElementById('textEditor');
-var textMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+const textMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
 
-var textGeometry = new TextGeometry("New Text", {
+// Function to create a text mesh
+function createTextMesh(text) {
+	const textGeometry = new TextGeometry(text, {
+		size: 0.5,
+		height: 0.1,
+	});
+	return new THREE.Mesh(textGeometry, textMaterial);
+}
 
-	size: 0.5,
-	height: 0.1,
-});
-var textMesh = new THREE.Mesh(textGeometry, textMaterial);
+let textMesh; // Initialize textMesh variable
+
 textEditor.addEventListener('input', function () {
 	const newText = textEditor.value;
-	textMesh.geometry = new TextGeometry(newText, /* your options */);
-	// You may need to update the position, material, etc., depending on your use case.
+
+	if (!textMesh) {
+		textMesh = createTextMesh(newText);
+		// Set the initial position, material, etc., for the text mesh.
+		// Example: textMesh.position.set(x, y, z);
+		// Example: textMesh.material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+		// Add the textMesh to your scene.
+		scene.add(textMesh);
+	} else {
+		textMesh.geometry = new TextGeometry(newText, /* your options */);
+		// You may need to update the position, material, etc., depending on your use case.
+	}
 });
-const collisionButton = document.getElementById('collisionButton'); // Create a button element
+
+const collisionButton = document.getElementById('collisionButton');
+const submitButton = document.getElementById('submitButton');
 
 collisionButton.addEventListener('click', function () {
 	textEditor.style.display = 'block';
 });
 
+// Event listener for the Enter key and "Submit" button
+function handleTextEditorSubmit() {
+	const enteredText = textEditor.value.toLowerCase(); // Convert input to lowercase
+	const quizPopup = document.getElementById('quizPopup');
+	const quizSubmitButton = document.getElementById('quiz-submit-button');
+	const quizFeedback = document.getElementById('quiz-feedback');
 
-const submitButton = document.createElement('button');
-submitButton.id = 'submitButton';
-submitButton.textContent = 'Submit';
+	if (enteredText === 'yes') {
+		// Show the quiz popup
+		if (quizPopup) {
+			quizPopup.style.display = 'block';
+		} else {
+			console.error("Element with ID 'quizPopup' not found.");
+		}
 
-// Append the button to the document body
-document.body.appendChild(submitButton);
-submitButton.addEventListener('click', function () {
-	const enteredText = textEditor.value;
-	console.log('Entered text:', enteredText);
+		// Event listener for the quiz submission button
+		quizSubmitButton.addEventListener('click', function () {
+			const selectedAnswer = document.querySelector('input[name="q1"]:checked').value;
+			const correctAnswer = "2306";
 
-	// You can use the entered text in your JavaScript logic here.
+			if (selectedAnswer === correctAnswer) {
+				// Provide correct feedback
+				quizFeedback.innerText = "Correct! You may proceed.";
+				quizFeedback.style.color = "green";
+
+				// Hide the quiz popup
+				quizPopup.style.display = 'none';
+			} else {
+				// Provide incorrect feedback
+				quizFeedback.innerText = "Incorrect. Please try again.";
+				quizFeedback.style.color = "red";
+			}
+
+			// Display the feedback
+			quizFeedback.style.display = 'block';
+		});
+
+		textEditor.style.display = 'none';
+	} else {
+		console.log('Entered text:', enteredText);
+	}
+
+	// Clear the editor
+	textEditor.value = '';
+}
+
+// Event listener for the Enter key
+textEditor.addEventListener('keydown', function (event) {
+	if (event.key === 'Enter') {
+		event.preventDefault(); // Prevent the default form submission behavior
+		handleTextEditorSubmit();
+	}
 });
 
+// Event listener for the "Submit" button
+submitButton.addEventListener('click', function () {
+	handleTextEditorSubmit();
+});
+
+// Quiz answer
 
 
 
@@ -1022,13 +1437,17 @@ function createCollectible(x, y, z) {
 }
 
 // Create collectible cubes at random positions
-for (let i = 0; i < collectibleCount; i++) {
-	const x = Math.random() * 100 - 10; // Random x position between -10 and 10
-	const y = 0.5; // Set to half of the player's height
-	const z = Math.random() * 100 - 10; // Random z position between -10 and 10
-	createCollectible(x, y, z);
+// for (let i = 0; i < collectibleCount; i++) {
+// 	const x = Math.random() * 100 - 10; // Random x position between -10 and 10
+// 	const y = 0.5; // Set to half of the player's height
+// 	const z = Math.random() * 100 - 10; // Random z position between -10 and 10
+// 	createCollectible(x, y, z);
 
-}
+// }
+
+createCollectible(4000, 5, 5);
+createCollectible(4000, 10, 4000);
+createCollectible(4000, 5, -2000);
 
 // Function to handle interactions with collectibles
 function handleCollectibleInteraction() {
@@ -1073,7 +1492,6 @@ function checkCollectibleInteractions() {
 }
 
 function updateCountdown(timestamp) {
-
 	if (!previousTimestamp) {
 		previousTimestamp = timestamp;
 	}
@@ -1081,27 +1499,37 @@ function updateCountdown(timestamp) {
 	previousTimestamp = timestamp;
 
 	// Update the time remaining.
-	timeRemaining -= deltaTime / 1000; // Convert milliseconds to seconds.
+	timeRemaining -= deltaTime / 1000; // Convert milliseconds to seconds;
 
 	if (timeRemaining <= 0) {
-		document.getElementById('countdown').innerHTML = 'Countdown Expired';
+		// Time has expired, show the "Failed" message
+		document.getElementById('countdown-text').innerHTML = 'Failed';
+		document.getElementById('progress-bar').style.width = '0%';
+
+		// You can add a message or trigger other actions here
+
+		// Reload the game by refreshing the page after a delay (e.g., 3 seconds)
+		setTimeout(function () {
+			location.reload();
+		}, 3000); // 3000 milliseconds (3 seconds) delay
 		return;
 	}
 
 	const minutes = Math.floor(timeRemaining / 60);
 	const seconds = Math.floor(timeRemaining % 60);
 
+	// Update the countdown text.
+	document.getElementById('countdown-text').innerHTML = `Timer: ${minutes}m ${seconds}s`;
 
-
-
-
-
-	// Update the HTML element with the countdown.
-	document.getElementById('countdown').innerHTML = `${minutes}m ${seconds}s`;
+	// Update the progress bar.
+	const totalDuration = 200; // Total duration in seconds
+	const remainingPercentage = ((totalDuration - timeRemaining) / totalDuration) * 100;
+	document.getElementById('progress-bar').style.width = remainingPercentage + '%';
 
 	// Request the next frame.
 	requestAnimationFrame(updateCountdown);
 }
+
 requestAnimationFrame(updateCountdown);
 
 
@@ -1113,14 +1541,20 @@ function animate() {
 	checkCollectibleInteractions();
 	const clockDelta = clock.getDelta() * 2;
 	if (mixer) { mixer.update(clockDelta); }
+	if (mixer2) { mixer2.update(clockDelta); }
+	if (mixer3) { mixer3.update(clockDelta); }
+	if (mixer4) { mixer4.update(clockDelta * 5); }
+	if (mixer5) { mixer5.update(clockDelta * 5); }
+	if (mixer6) { mixer6.update(clockDelta * 5); }
 
-	console.log(person.rotation);
 
-
+	
 
 }
 
 function render() {
 
 	renderer.render(scene, camera);
+	
+
 }
