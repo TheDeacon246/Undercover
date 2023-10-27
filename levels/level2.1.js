@@ -465,7 +465,6 @@ function indoorLighting() {
 }
 
 function loadFurniture() {
-	loadModel("models/cupboard/scene.gltf", new THREE.Vector3(1705, 350, 350), new THREE.Vector3(1235, 1000, -2191));
 
 	indoorLighting();
 }

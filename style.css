@@ -160,7 +160,7 @@ button:focus-visible {
 
 #inventory {
   position: fixed;
-  background-color: rgba(110, 127, 128, 0.12);
+  background-color: rgba(89, 110, 111, 0.744);
   height: 550px;
   width: 120px;
   margin: 25px;
@@ -178,8 +178,7 @@ button:focus-visible {
   width: 100px;
   opacity: 1;
   border: 1px solid #213547;
-  object-fit: fill;
-  object-fit: contain;
+  object-fit: cover;
 }
 
 .inv-item:hover {
