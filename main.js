@@ -1020,62 +1020,66 @@ collisionButton.addEventListener('click', function () {
     textEditor.style.display = 'block';
 });
 
-// Event listener for the Enter key
-textEditor.addEventListener('keydown', function (event) {
-    if (event.key === 'Enter') {
-        const enteredText = textEditor.value.toLowerCase(); // Convert input to lowercase
-
-        if (enteredText === 'yes') {
-            // Show the quiz popup
-			const quizPopup = document.getElementById('quizPopup');
-			if (quizPopup) {
-				quizPopup.style.display = 'block';
-			} else {
-				console.error("Element with ID 'quizPopup' not found.");
-			}
-
-            // Handle the quiz submission
-            const quizSubmitButton = document.getElementById('quiz-submit-button');
-            quizSubmitButton.addEventListener('click', function () {
-                // Handle the quiz submission logic here
-                // You can check the selected answer and provide feedback
-                // You can also hide the quiz popup after submission
-                quizPopup.style.display = 'none';
-            });
-        } else {
-            console.log('Entered text:', enteredText);
-        }
-
-        // Clear the editor
-        textEditor.value = '';
-    }
-});
-
-// Event listener for the "Submit" button
-submitButton.addEventListener('click', function () {
+// Event listener for the Enter key and "Submit" button
+function handleTextEditorSubmit() {
     const enteredText = textEditor.value.toLowerCase(); // Convert input to lowercase
+    const quizPopup = document.getElementById('quizPopup');
+    const quizSubmitButton = document.getElementById('quiz-submit-button');
+    const quizFeedback = document.getElementById('quiz-feedback');
 
     if (enteredText === 'yes') {
         // Show the quiz popup
-        const quizPopup = document.getElementById('quiz-popup');
-        quizPopup.style.display = 'block';
+        if (quizPopup) {
+            quizPopup.style.display = 'block';
+        } else {
+            console.error("Element with ID 'quizPopup' not found.");
+        }
 
-        // Handle the quiz submission
-        const quizSubmitButton = document.getElementById('quiz-submit-button');
+        // Event listener for the quiz submission button
         quizSubmitButton.addEventListener('click', function () {
-            // Handle the quiz submission logic here
-            // You can check the selected answer and provide feedback
-            // You can also hide the quiz popup after submission
-            quizPopup.style.display = 'none';
+            const selectedAnswer = document.querySelector('input[name="q1"]:checked').value;
+            const correctAnswer = "2306";
+
+            if (selectedAnswer === correctAnswer) {
+                // Provide correct feedback
+                quizFeedback.innerText = "Correct! You may proceed.";
+                quizFeedback.style.color = "green";
+
+                // Hide the quiz popup
+                quizPopup.style.display = 'none';
+            } else {
+                // Provide incorrect feedback
+                quizFeedback.innerText = "Incorrect. Please try again.";
+                quizFeedback.style.color = "red";
+            }
+
+            // Display the feedback
+            quizFeedback.style.display = 'block';
         });
+
+        textEditor.style.display = 'none';
     } else {
         console.log('Entered text:', enteredText);
     }
 
     // Clear the editor
     textEditor.value = '';
+}
+
+// Event listener for the Enter key
+textEditor.addEventListener('keydown', function (event) {
+    if (event.key === 'Enter') {
+        event.preventDefault(); // Prevent the default form submission behavior
+        handleTextEditorSubmit();
+    }
 });
 
+// Event listener for the "Submit" button
+submitButton.addEventListener('click', function () {
+    handleTextEditorSubmit();
+});
+
+// Quiz answer
 
 
 
@@ -1101,7 +1105,7 @@ function collisionRemove(wallArray) {
 // Score and collectible count
 const normalMaterial = new THREE.MeshNormalMaterial()
 let score = 0;
-let collectibleCount = 10; // Change this value based on the number of collectibles in your scene
+let collectibleCount = 2; // Change this value based on the number of collectibles in your scene
 var collectible;
 
 // Function to create collectible cubes
@@ -1115,7 +1119,7 @@ function createCollectible(x, y, z) {
 
 }
 
-// // Create collectible cubes at random positions
+// Create collectible cubes at random positions
 // for (let i = 0; i < collectibleCount; i++) {
 // 	const x = Math.random() * 100 - 10; // Random x position between -10 and 10
 // 	const y = 0.5; // Set to half of the player's height
@@ -1124,13 +1128,9 @@ function createCollectible(x, y, z) {
 
 // }
 
-createCollectible(4000,5,5);
-createCollectible(4000,10,4000);
-createCollectible(4000,5,-2000);
-createCollectible(4000,10,5);
-createCollectible(4000,10,1000);
-createCollectible(2000,5,-4000);
-
+createCollectible(4000, 5, 5);
+createCollectible(4000, 10, 4000);
+createCollectible(4000, 5, -2000);
 
 // Function to handle interactions with collectibles
 function handleCollectibleInteraction() {
@@ -1185,8 +1185,16 @@ function updateCountdown(timestamp) {
     timeRemaining -= deltaTime / 1000; // Convert milliseconds to seconds;
 
     if (timeRemaining <= 0) {
-        document.getElementById('countdown-text').innerHTML = 'Countdown Expired';
+        // Time has expired, show the "Failed" message
+        document.getElementById('countdown-text').innerHTML = 'Failed';
         document.getElementById('progress-bar').style.width = '0%';
+
+        // You can add a message or trigger other actions here
+
+        // Reload the game by refreshing the page after a delay (e.g., 3 seconds)
+        setTimeout(function() {
+            location.reload();
+        }, 3000); // 3000 milliseconds (3 seconds) delay
         return;
     }
 
@@ -1197,7 +1205,7 @@ function updateCountdown(timestamp) {
     document.getElementById('countdown-text').innerHTML = `Timer: ${minutes}m ${seconds}s`;
 
     // Update the progress bar.
-    const totalDuration = 300; // Total duration in seconds
+    const totalDuration = 200; // Total duration in seconds
     const remainingPercentage = ((totalDuration - timeRemaining) / totalDuration) * 100;
     document.getElementById('progress-bar').style.width = remainingPercentage + '%';
 
@@ -1206,6 +1214,7 @@ function updateCountdown(timestamp) {
 }
 
 requestAnimationFrame(updateCountdown);
+
 
 function animate() {
 	requestAnimationFrame(animate);

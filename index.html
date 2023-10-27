@@ -9,8 +9,8 @@
     <div id="app"></div>
 
     <button id="collisionButton">Show Text Editor</button>
-<div id="aboveText">What is the square root of 64:</div>
-<input type="text" id="textEditor" placeholder="What is the square root of 64?">
+<div id="aboveText">The Clue:</div>
+<input type="text" id="textEditor" placeholder="Type in Yes For The Clue">
 <button id="submitButton">Submit</button>
 
     <div id="ThreeJS" style="position: absolute; left: 0px; top: 0px"></div>
@@ -36,24 +36,29 @@
     </div>
     
     <div id="quizPopup" style="display: none;">
-    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: white; padding: 20px;">
-        <h2>Quiz Time!</h2>
-        <p>Question 1: What is the capital of France?</p>
-        <input type="radio" name="q1" value="Paris"> Paris<br>
-        <input type="radio" name="q1" value="London"> London<br>
-        <input type="radio" name="q1" value="New York"> New York<br>
-        <button id="quiz-submit-button">Submit</button>
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: rgb(0, 0, 0); padding: 20px;">
+            <h2>The Key To the House</h2>
+            <p>Question 1: What could be the Dealers Passcode into the House?</p>
+            <input type="radio" name="q1" value="1806"> 1806<br>
+            <input type="radio" name="q1" value="0202"> 0202<br>
+            <input type="radio" name="q1" value="0205"> 0205<br>
+            <input type="radio" name="q1" value="2306"> 2306<br>
+            <button id="quiz-submit-button">Submit</button>
+            <div id="quiz-feedback" style="display: none;"></div>
+        </div>
     </div>
-</div>
 
+    
+    
+    
     <!-- Follow-up instructions screen (initially hidden)
     <div id="follow-up-instructions" style="display: none; background-color: black; color: white; position: absolute; left: 0; top: 0; width: 100%; height: 100%; text-align: center; justify-content: center; align-items: center; display: flex; flex-direction: column;">
         <h2>Level One UnderCover Agent:</h2>
         <ul>
-            <li>Three Houses, You have to Choose the Correct One Before Time Runs Out</li>
-            <li>Each House has a collectable which has Clues of Whether that is the Correct House</li>
-            <li>Each Wrong house you Pick Reduces the Chances of you getting the correct one on time</li>
-            <li>You have 3 Minutes to Find The Correct House</li>
+            <li>Three Houses, One of the Houses has the Clue to Get The Key</li>
+            <li>But DO you have Enough time go to Every House to look for the Clue</li>
+            <li>You also have to Solve the Problem that Comes with the clue</li>
+            <li>You have 2 Minutes to get the Key to the House/li>
             <li>Your Time starts.. NOW</li>
         </ul>
     </div>-->
